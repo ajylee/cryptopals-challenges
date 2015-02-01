@@ -12,21 +12,36 @@ def cipher(data, key):
     return strxor(data, _salt)
 
 
+def printable(char_or_num):
+    if isinstance(char_or_num, int):
+        return (31 < char_or_num < 127) or (char_or_num in {9,10,13})
+    else:
+        return printable(ord(char_or_num))
+
+
 def score(strn):
     """score_ = (num_letters - num_nonprintable_chars)"""
+
+    for char in strn:
+        if not printable(ord(char)):
+            return 0
 
     freqs = toolz.countby(toolz.identity, strn)
 
     num_letters = sum(freqs.get(letter, 0) for letter in string.ascii_letters + ' \n')
-    num_nonprintable = sum(freqs.get(chr(notletter), 0)
-                           for notletter in xrange(32))
 
-    return num_letters - num_nonprintable
+    return num_letters
+
+
+def _cipher_and_score(data, key):
+    _ciphered = cipher(data, key)
+    return (key, _ciphered, score(_ciphered))
 
 
 def top_ciphered(strn, limit=None):
-    _ciphered = [cipher(strn, chr(ii)) for ii in xrange(256)]
-    return sorted(_ciphered, key=lambda ss: -score(ss))[:limit]
+    _ciphered = [_cipher_and_score(strn, chr(ii)) for ii in xrange(256)]
+    _filtered = filter(lambda x: x[2] > 0, _ciphered)
+    return sorted(_filtered, key=lambda tup: -tup[2])[:limit]
 
 
 def solve():
@@ -34,10 +49,9 @@ def solve():
     _i1 = binascii.a2b_hex(_input)
 
 
-    for ss in top_ciphered(_i1, limit=3):
-        print score(ss), repr(ss)
+    for key, _ciphered, _score in top_ciphered(_i1, limit=3):
+        print _score, repr(key), repr(_ciphered)
 
 
 if __name__ == '__main__':
     solve()
-    
