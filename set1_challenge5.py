@@ -5,7 +5,7 @@ import binascii
 
 
 def solve():
-    
+
     _inp = ("Burning 'em, if you ain't quick and nimble\n"
             "I go crazy when I hear a cymbal")
 
@@ -22,9 +22,8 @@ def solve():
 def extra():
     _i1 = """Encrypt a bunch of stuff using your repeating-key XOR function. Encrypt your mail. Encrypt your password file. Your .sig file. Get a feel for it. I promise, we aren't wasting your time with this."""
     _o1 = binascii.hexlify(cipher(_i1, 'ICEBEH'))
-    return _o1
+    return _i1, _o1
 
-    
+
 if __name__ == '__main__':
     solve()
-    
