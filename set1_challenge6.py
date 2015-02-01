@@ -1,12 +1,17 @@
 
 from __future__ import division
 import base64
+import binascii
 import pprint
 import bin_more
 import toolz as tz
 import itertools
 
 from set1_challenge3 import cipher, top_ciphered
+from set1_challenge5 import extra
+
+LOG_KEY_SIZE = 1
+LOG_KEY_PART = 0
 
 
 def hamming(s1, s2):
@@ -19,17 +24,33 @@ def hamming(s1, s2):
 
 
 def chunks(ss, size, num_chunks):
-    return [ss[ii:ii + size]
+
+    assert len(ss) >= size * num_chunks
+
+    def nth_slice(nn):
+        start = size * nn
+        end = start + size
+        return slice(start, end)
+
+    return [ss[nth_slice(ii)]
         for ii in xrange(num_chunks)]
 
 
 
-def score_keysizes(strn, max_keysize=40):
-    _nchunks = 4  # number of subsequences to use in score
+def score_keysizes(strn, num_chunks, max_keysize):
+    """Generate table of scores for various keysizes
+
+    :param int num_chunks: number of subsequences to use in scoring
+    :param int max_keysize: max keysize to try
+
+    For each `keysize`, break `strn` into `num_chunks` chunks of length
+    `keysize`. The score is the average Hamming distance between the chunks.
+
+    """
     _results = {} # map keysize to averaged, normalized hamming
 
     for _trial_keysize in xrange(2, max_keysize):
-        _chunks = chunks(strn, _trial_keysize, _nchunks)
+        _chunks = chunks(strn, _trial_keysize, num_chunks)
         _tot_hamming = 0
         _ncombs = 0
 
@@ -49,20 +70,24 @@ def test_hamming():
     assert hamming(a, b) == 37
 
 
-def solve_keysize(ss):
-    scores = score_keysizes(ss)
+def solve_keysize(ss, num_chunks=6, max_keysize=40):
+    scores = score_keysizes(ss, num_chunks, max_keysize)
+    _sorted = sorted(scores.items(), key = lambda pair: pair[1])
 
-    for _size, _score in tz.take(3, sorted(scores.items(),
-                                           key = lambda pair: pair[1])):
-        print _size, _score
+    if LOG_KEY_SIZE:
+        for _size, _score in tz.take(3, _sorted):
+            print _size, _score
+
+    return _sorted[0][0]
 
 
 def get_key_part(ss):
     top3 = top_ciphered(ss, limit=3)
-    print '=' * 50
-    for key, ss, _score in top3:
-        print _score, repr(ss)
-        print '-' * 50
+    if LOG_KEY_PART:
+        print '=' * 50
+        for key, ss, _score in top3:
+            print _score, repr(ss)
+            print '-' * 50
     return top3[0][0]
 
 
@@ -81,7 +106,7 @@ def solve_code(ss, keysize):
     return cipher(ss, key)
 
 
-def test_breakup_stitch():
+def test_breakup():
     with open('6.txt', 'r') as fil:
         ss = base64.b64decode(fil.read())
 
@@ -91,15 +116,28 @@ def test_breakup_stitch():
     assert ''.join(tz.interleave(_separated)) == test_string, _separated
 
 
+def test_solve_code():
+    _i1, _o = extra()
+    ss = binascii.unhexlify(_o)
+    keysize = solve_keysize(ss, num_chunks=6, max_keysize=10)
+    assert keysize == 6
+    _i2 = solve_code(ss, keysize=keysize)
+    assert _i2 == _i1
+
+
 if __name__ == '__main__':
     test_hamming()
-    test_breakup_stitch()
+    test_breakup()
+    test_solve_code()
 
     with open('6.txt', 'r') as fil:
         ss = base64.b64decode(fil.read())
 
-    solve_keysize(ss) # conclusion: size is most likely 6
+    keysize = solve_keysize(ss, num_chunks=6, max_keysize=40)
+    solved = solve_code(ss, keysize=keysize)
 
-    #for keysize in xrange(2, 8):
-    #    solved = solve_code(ss, keysize=6)
-    #print repr(solved)
+    print
+    print '-' * 50
+    print 'solution'
+    print '-' * 50
+    print solved
