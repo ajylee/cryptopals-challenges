@@ -35,13 +35,13 @@ def step_1(encrypt_fn):
     # feed identical bytes, determine keysize
 
     _byte = 'A'
-    def find_repeat(ll):
-        encrypted = encrypt_fn(_byte * ll)
-        return encrypted[:ll // 2] == encrypted[ll // 2: ll]
 
-    for ii in xrange(1, 100):
-        if find_repeat(ii * 2):
-            return ii
+    curr_len = start_len = len(encrypt_fn('A'))
+
+    for ii in xrange(2, 100):
+        curr_len = len(encrypt_fn(_byte * ii))
+        if curr_len != start_len:
+            return curr_len - start_len
 
 
 def step_2(encrypt_fn, keysize):
@@ -64,13 +64,13 @@ def step_3(encrypt_fn, keysize):
         lpad_len = (-len(known) - 1) % keysize
         lpad = 'A' * lpad_len
 
-        tot_len = len(known) + lpad_len + 1
+        entry_len = len(known) + lpad_len + 1
 
         _inputs = (lpad + known + _c for _c in gen.chars)
-        _reverse_lookup = {encrypt_fn(_input)[:tot_len]: _input
+        _reverse_lookup = {encrypt_fn(_input)[:entry_len]: _input
                            for _input in _inputs}
 
-        _with_unknown_byte = encrypt_fn(lpad)[:tot_len]
+        _with_unknown_byte = encrypt_fn(lpad)[:entry_len]
 
         return _reverse_lookup[_with_unknown_byte][-1]
 
