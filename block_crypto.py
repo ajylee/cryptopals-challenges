@@ -18,8 +18,8 @@ def xor_cipher(data, key):
     return strxor(data, _salt)
 
 
-def random_key(length=16):
-    return ''.join(chr(random.randint(0, 256))
+def random_str(length=16):
+    return ''.join(chr(random.randint(0, 255))
                for ii in xrange(length))
 
 
