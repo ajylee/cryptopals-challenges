@@ -21,11 +21,9 @@ class rand_ECB_CBC(object):
             self.mode = AES.MODE_CBC
             self.cipher = CBC(key, iv)
 
-        random_pad = lambda : random_str(randint(5, 10))
-        self._pads = (random_pad(), random_pad())
-
     def encrypt(self, strn):
-        padded = pad(self._pads[0] + strn + self._pads[1],
+        random_pad = lambda : random_str(randint(5, 10))
+        padded = pad(random_pad() + strn + random_pad(),
                      block_size=self.block_size)
         return self.cipher.encrypt(padded)
 
@@ -33,12 +31,21 @@ class rand_ECB_CBC(object):
         return self.cipher.decrypt(strn) # does not take padding into account
 
 
+def detect_ECB_or_CBC(encryption_fn):
+    test_strn = 'a' * 16 + 'b' * 16
+    encryption_fn(test_strn)
+
+
 def test_detection():
-    with open(osp.join(gen.datadir, '10.txt')) as f:
-        strn = base64.b64decode(f.read())
+    #with open(osp.join(gen.datadir, '10.txt')) as f:
+    #    strn = base64.b64decode(f.read())
 
     ciphers = [rand_ECB_CBC() for _ in xrange(10)]
 
-    ciphertexts = [c.encode(strn) for c in ciphers]
+    ciphertexts = [c.encrypt(strn) for c in ciphers]
 
     print ciphertexts
+
+
+if __name__ == '__main__':
+    test_detection()
