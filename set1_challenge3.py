@@ -1,15 +1,9 @@
-
-
 import binascii
-import base64
-from Crypto.Util.strxor import strxor
-import toolz
 import string
 
+import toolz
 
-def cipher(data, key):
-    _salt = len(data) // len(key) * key + key[:len(data) % len(key)]
-    return strxor(data, _salt)
+from block_crypto import cipher
 
 
 def printable(char_or_num):

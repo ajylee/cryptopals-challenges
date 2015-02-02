@@ -7,7 +7,8 @@ import bin_more
 import toolz as tz
 import itertools
 
-from set1_challenge3 import cipher, top_ciphered
+from set1_challenge3 import top_ciphered
+from block_crypto import cipher
 from set1_challenge5 import extra
 
 LOG_KEY_SIZE = 1
