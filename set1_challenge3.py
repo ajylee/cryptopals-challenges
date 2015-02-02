@@ -3,7 +3,7 @@ import string
 
 import toolz
 
-from block_crypto import cipher
+from block_crypto import xor_cipher
 
 
 def printable(char_or_num):
@@ -28,7 +28,7 @@ def score(strn):
 
 
 def _cipher_and_score(data, key):
-    _ciphered = cipher(data, key)
+    _ciphered = xor_cipher(data, key)
     return (key, _ciphered, score(_ciphered))
 
 

@@ -1,4 +1,4 @@
-from block_crypto import cipher
+from block_crypto import xor_cipher
 import binascii
 
 
@@ -12,14 +12,14 @@ def solve():
         "a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f"
     )
 
-    _calc_ans = binascii.hexlify(cipher(_inp, 'ICE'))
+    _calc_ans = binascii.hexlify(xor_cipher(_inp, 'ICE'))
 
     print _calc_ans == _desired_ans
 
 
 def extra():
     _i1 = """Encrypt a bunch of stuff using your repeating-key XOR function. Encrypt your mail. Encrypt your password file. Your .sig file. Get a feel for it. I promise, we aren't wasting your time with this."""
-    _o1 = binascii.hexlify(cipher(_i1, 'ICEBEH'))
+    _o1 = binascii.hexlify(xor_cipher(_i1, 'ICEBEH'))
     return _i1, _o1
 
 

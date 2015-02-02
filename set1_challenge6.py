@@ -8,7 +8,7 @@ import toolz as tz
 import itertools
 
 from set1_challenge3 import top_ciphered
-from block_crypto import cipher
+from block_crypto import xor_cipher
 from set1_challenge5 import extra
 
 LOG_KEY_SIZE = 1
@@ -108,7 +108,7 @@ def breakup_by_mod(strn, divisor):
 
 def solve_code(ss, keysize):
     key = get_key(ss, keysize)
-    return cipher(ss, key)
+    return xor_cipher(ss, key)
 
 
 def test_breakup():
