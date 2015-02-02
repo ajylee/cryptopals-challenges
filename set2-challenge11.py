@@ -33,14 +33,16 @@ class rand_ECB_CBC(object):
 
 def detect_ECB_or_CBC(encryption_fn):
     test_strn = 'a' * 128
-    num_trials = 10
+    num_trials = 1
     score = (sum(average_hamming(chunks(encryption_fn(test_strn), 16))
                 for _ in xrange(num_trials))
              / float(num_trials) / 8.)
 
-    if score < .45:
+    if score < .4:
+        #print 'ECB', score
         return AES.MODE_ECB
     else:
+        #print 'CBC', score
         return AES.MODE_CBC
 
 
