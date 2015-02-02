@@ -58,13 +58,26 @@ def step_2(encrypt_fn, keysize):
 def step_3(encrypt_fn, keysize):
     # one byte short
 
-    _byte = 'A'
+    def get_next_byte(known):
+        nonce = 'A' * (keysize - len(known) - 1)
+        print nonce, len(nonce)
+        _inputs = (nonce + known + _c for _c in gen.chars)
+        _reverse_lookup = {encrypt_fn(_input)[:keysize]: _input
+                           for _input in _inputs}
 
-    encrypted_normal = encrypt_fn(_byte * keysize)
-    print repr(encrypted_normal[:keysize])
+        _with_unknown_byte = encrypt_fn(nonce)[:keysize]
 
-    encrypted_short = encrypt_fn(_byte * (keysize - 1))
-    print repr(encrypted_short[:keysize])
+        return _reverse_lookup[_with_unknown_byte][-1]
+
+
+    _known = ''
+
+    while len(_known) < 16:
+        print repr(_known)
+        _known += get_next_byte(_known)
+
+    print repr(_known)
+
 
 
 if __name__ == '__main__':
