@@ -24,9 +24,11 @@ def hamming(s1, s2):
     return diff
 
 
-def chunks(ss, size, num_chunks):
-
-    assert len(ss) >= size * num_chunks
+def chunks(ss, size, num_chunks=None):
+    if num_chunks != None:
+        assert len(ss) >= size * num_chunks
+    else:
+        num_chunks = len(ss) // size
 
     def nth_slice(nn):
         start = size * nn
