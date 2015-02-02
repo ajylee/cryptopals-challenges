@@ -12,7 +12,7 @@ def test_cipher():
     key = b"YELLOW SUBMARINE"
     cipher = AES.new(key, AES.MODE_ECB)
 
-    test_msg = pad(cipher, b'Attack at dawn')
+    test_msg = pad(b'Attack at dawn', cipher.block_size)
     encrypted = cipher.encrypt(test_msg)
     decrypted = cipher.decrypt(encrypted)
 
