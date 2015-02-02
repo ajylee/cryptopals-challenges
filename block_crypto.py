@@ -1,4 +1,9 @@
-from Crypto.Util.strxor import strxor
+import itertools
+
+
+def strxor(s1, s2):
+    return ''.join(chr(ord(_c1) ^ ord(_c2))
+               for _c1, _c2 in itertools.izip(s1, s2))
 
 
 def pad(strn, block_size, pad_str=chr(4)):
