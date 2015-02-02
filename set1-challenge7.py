@@ -5,10 +5,7 @@ import base64
 from Crypto.Cipher import AES
 from Crypto import Random
 from set1_challenge3 import printable
-
-
-def pad(cipher, strn):
-    return strn + ' ' * (-len(strn) % cipher.block_size)
+from block_crypto import pad
 
 
 def test_cipher():
@@ -20,7 +17,6 @@ def test_cipher():
     decrypted = cipher.decrypt(encrypted)
 
     assert decrypted == test_msg
-
 
 
 def solve():
