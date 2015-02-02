@@ -56,7 +56,7 @@ def step_2(encrypt_fn, keysize):
 
 
 def step_3(encrypt_fn, keysize):
-    # one byte short
+    # decrypt unknown_string
 
     _unknown_string_len = len(encrypt_fn(''))
 
