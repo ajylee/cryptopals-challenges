@@ -13,20 +13,9 @@ from Crypto import Random
 
 from set1_challenge6 import chunks, average_hamming
 
-random = Random.new()
-
-def gen_keys():
-    for ords in itertools.product(xrange(256), repeat=16):
-        yield ''.join(chr(_o) for _o in ords)
-
-
 def score(ss, max_chunks=10):
     num_chunks = min(len(ss) / 16, max_chunks)
     return average_hamming(chunks(ss, 16, num_chunks)) / 8.
-
-
-def rand(num_blocks):
-    return random.read(AES.block_size * num_blocks)
 
 
 def solve():
@@ -50,19 +39,20 @@ def plot_scores(scores):
     plt.show()
 
 
-def print_random_cipher_scores(ss):
-    print '-' * 50
-    print score(ss)
+def experiment():
+    random = Random.new()
+
+    def rand(num_blocks):
+        return random.read(AES.block_size * num_blocks)
+
+    _rep = rand(1)
+    nreps = 4
+    ss = _rep * nreps + rand(10 - nreps)
+
     for ii in xrange(10):
         key = rand(1)
         cipher = AES.new(key, AES.MODE_ECB)
         print score(cipher.encrypt(ss))
-
-
-def experiment():
-    _rep = rand(1)
-    nreps = 4
-    print_random_cipher_scores(_rep * nreps + rand(10 - nreps))
 
 
 if __name__ == '__main__':
