@@ -14,7 +14,7 @@ def test_cipher():
     key = b'YELLOW SUBMARINE'
     iv = chr(0) * len(key)
 
-    c = CBC.new(key, iv)
+    c = CBC(key, iv)
     enc = c.encrypt(strn)
     print repr(enc)
     assert c.decrypt(enc).startswith(strn)
