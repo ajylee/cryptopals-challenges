@@ -1,11 +1,11 @@
 
-import base64
-import os.path as osp
 from random import randint
 from Crypto.Cipher import AES
 
 import gen
-from block_crypto import CBC, random_str, pad
+from block_crypto import CBC, random_str, pad, chunks
+
+from set1_challenge6 import average_hamming
 
 
 class rand_ECB_CBC(object):
@@ -32,19 +32,26 @@ class rand_ECB_CBC(object):
 
 
 def detect_ECB_or_CBC(encryption_fn):
-    test_strn = 'a' * 16 + 'b' * 16
-    encryption_fn(test_strn)
+    test_strn = 'a' * 128
+    num_trials = 10
+    score = (sum(average_hamming(chunks(encryption_fn(test_strn), 16))
+                for _ in xrange(num_trials))
+             / float(num_trials) / 8.)
+
+    if score < .45:
+        return AES.MODE_ECB
+    else:
+        return AES.MODE_CBC
 
 
 def test_detection():
-    #with open(osp.join(gen.datadir, '10.txt')) as f:
-    #    strn = base64.b64decode(f.read())
+    ciphers = [rand_ECB_CBC() for _ in xrange(20)]
 
-    ciphers = [rand_ECB_CBC() for _ in xrange(10)]
+    encryption_fns = [c.encrypt for c in ciphers]
 
-    ciphertexts = [c.encrypt(strn) for c in ciphers]
+    modes = map(detect_ECB_or_CBC, encryption_fns)
 
-    print ciphertexts
+    assert modes == [c.mode for c in ciphers]
 
 
 if __name__ == '__main__':
