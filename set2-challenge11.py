@@ -44,6 +44,13 @@ def detect_ECB_or_CBC(encryption_fn):
         return AES.MODE_CBC
 
 
+def try_encryption():
+    strn = 'Hello, this is the plaintext!! Have a nice day.'
+    ciphers = [rand_ECB_CBC() for _ in xrange(20)]
+    ciphertexts = [c.encrypt(strn) for c in ciphers]
+    print ciphertexts
+
+
 def test_detection():
     ciphers = [rand_ECB_CBC() for _ in xrange(20)]
 
@@ -55,4 +62,5 @@ def test_detection():
 
 
 if __name__ == '__main__':
+    #try_encryption()
     test_detection()
