@@ -1,4 +1,5 @@
 import itertools
+import random
 
 
 def strxor(s1, s2):
@@ -14,3 +15,8 @@ def pad(strn, block_size, pad_str=chr(4)):
 def xor_cipher(data, key):
     _salt = len(data) // len(key) * key + key[:len(data) % len(key)]
     return strxor(data, _salt)
+
+
+def random_key(length=16):
+    return ''.join(chr(random.randint(0, 256))
+               for ii in xrange(length))
