@@ -61,16 +61,16 @@ def step_3(encrypt_fn, keysize):
     _unknown_string_len = len(encrypt_fn(''))
 
     def get_next_byte(known):
-        nonce_len = (-len(known) - 1) % keysize
-        nonce = 'A' * nonce_len
+        lpad_len = (-len(known) - 1) % keysize
+        lpad = 'A' * lpad_len
 
-        tot_len = len(known) + nonce_len + 1
+        tot_len = len(known) + lpad_len + 1
 
-        _inputs = (nonce + known + _c for _c in gen.chars)
+        _inputs = (lpad + known + _c for _c in gen.chars)
         _reverse_lookup = {encrypt_fn(_input)[:tot_len]: _input
                            for _input in _inputs}
 
-        _with_unknown_byte = encrypt_fn(nonce)[:tot_len]
+        _with_unknown_byte = encrypt_fn(lpad)[:tot_len]
 
         return _reverse_lookup[_with_unknown_byte][-1]
 
