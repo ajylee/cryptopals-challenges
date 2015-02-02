@@ -27,7 +27,7 @@ def solve():
     key = b'YELLOW SUBMARINE'
     iv = chr(0) * len(key)
 
-    for line in CBC.new(key, iv).decrypt(strn).split('\n'):
+    for line in CBC(key, iv).decrypt(strn).split('\n'):
         print repr(line)
 
 

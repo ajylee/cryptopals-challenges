@@ -39,11 +39,6 @@ def chunks(ss, size, num_chunks=None):
 
 
 class CBC(object):
-
-    @staticmethod
-    def new(key, iv):
-        return CBC(key, iv)
-
     def __init__(self, key, iv):
         self._ecb_cipher = AES.new(key, AES.MODE_ECB)
         self.block_size = len(key)
