@@ -36,6 +36,17 @@ def chunks(ss, size, num_chunks):
         for ii in xrange(num_chunks)]
 
 
+def average_hamming(chunks_):
+    _tot_hamming = 0
+    _ncombs = 0
+    size = len(chunks_[0]) # all chunks should have same size
+
+    for _s1, _s2 in itertools.combinations(chunks_, 2):
+        _tot_hamming += float(hamming(_s1, _s2)) / size
+        _ncombs += 1
+
+    return _tot_hamming / _ncombs
+
 
 def score_keysizes(strn, num_chunks, max_keysize):
     """Generate table of scores for various keysizes
@@ -51,14 +62,7 @@ def score_keysizes(strn, num_chunks, max_keysize):
 
     for _trial_keysize in xrange(2, max_keysize):
         _chunks = chunks(strn, _trial_keysize, num_chunks)
-        _tot_hamming = 0
-        _ncombs = 0
-
-        for _s1, _s2 in itertools.combinations(_chunks, 2):
-            _tot_hamming += float(hamming(_s1, _s2)) / _trial_keysize
-            _ncombs += 1
-
-        _results[_trial_keysize] = _tot_hamming / _ncombs
+        _results[_trial_keysize] = average_hamming(_chunks)
 
     return _results
 
