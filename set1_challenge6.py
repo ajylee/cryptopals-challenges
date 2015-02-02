@@ -8,7 +8,7 @@ import toolz as tz
 import itertools
 
 from set1_challenge3 import top_ciphered
-from block_crypto import xor_cipher
+from block_crypto import xor_cipher, chunks
 from set1_challenge5 import extra
 
 LOG_KEY_SIZE = 1
@@ -22,21 +22,6 @@ def hamming(s1, s2):
         diff += bin_more.bit_count(ord(_c1) ^ ord(_c2))
 
     return diff
-
-
-def chunks(ss, size, num_chunks=None):
-    if num_chunks != None:
-        assert len(ss) >= size * num_chunks
-    else:
-        num_chunks = len(ss) // size
-
-    def nth_slice(nn):
-        start = size * nn
-        end = start + size
-        return slice(start, end)
-
-    return [ss[nth_slice(ii)]
-        for ii in xrange(num_chunks)]
 
 
 def average_hamming(chunks_):
