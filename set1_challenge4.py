@@ -8,8 +8,8 @@ def solve():
         for num, line in enumerate(fil.readlines()):
 
             _l = binascii.unhexlify(line.strip())
-            for ss in top_ciphered(_l, limit=3):
-                if score(ss) > 27:
-                    print num, score(ss), repr(ss)
+            for key, ss, _score in top_ciphered(_l, limit=3):
+                if _score > 27:
+                    print num, _score, repr(ss)
 
 print solve()
