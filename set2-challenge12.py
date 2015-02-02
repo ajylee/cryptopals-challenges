@@ -58,25 +58,29 @@ def step_2(encrypt_fn, keysize):
 def step_3(encrypt_fn, keysize):
     # one byte short
 
+    _unknown_string_len = len(encrypt_fn(''))
+
     def get_next_byte(known):
-        nonce = 'A' * (keysize - len(known) - 1)
-        print nonce, len(nonce)
+        nonce_len = (-len(known) - 1) % keysize
+        nonce = 'A' * nonce_len
+
+        tot_len = len(known) + nonce_len + 1
+
         _inputs = (nonce + known + _c for _c in gen.chars)
-        _reverse_lookup = {encrypt_fn(_input)[:keysize]: _input
+        _reverse_lookup = {encrypt_fn(_input)[:tot_len]: _input
                            for _input in _inputs}
 
-        _with_unknown_byte = encrypt_fn(nonce)[:keysize]
+        _with_unknown_byte = encrypt_fn(nonce)[:tot_len]
 
         return _reverse_lookup[_with_unknown_byte][-1]
 
 
     _known = ''
 
-    while len(_known) < 16:
-        print repr(_known)
+    while len(_known) < _unknown_string_len:
         _known += get_next_byte(_known)
 
-    print repr(_known)
+    return _known
 
 
 
@@ -88,4 +92,10 @@ if __name__ == '__main__':
     is_ECB = step_2(cipher.encrypt, keysize)
     print 'Uses ECB:', is_ECB
 
-    _ = step_3(cipher.encrypt, keysize)
+    msg = step_3(cipher.encrypt, keysize)
+
+    print 'Message:'
+    print '-' * 50
+
+    for line in msg.split('\n'):
+        print repr(line)
