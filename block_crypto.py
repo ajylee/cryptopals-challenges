@@ -71,6 +71,10 @@ class CBC(object):
         return ''.join(decrypted)
 
 
+class GaveUp(Exception):
+    pass
+
+
 def try_repeatedly(thunk, max_tries):
     tries = 0
 
@@ -81,4 +85,4 @@ def try_repeatedly(thunk, max_tries):
         else:
             tries += 1
 
-    raise StandardError, 'not found'
+    raise GaveUp, 'not found'
