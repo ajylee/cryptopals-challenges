@@ -11,9 +11,9 @@ block_size = 16
 class rand_padded_ECB(object):
     """Random key, random left-padding"""
 
-    def __init__(self):
+    def __init__(self, target_len):
         self.cipher = AES.new(key=random_str(block_size), mode=AES.MODE_ECB)
-        self.target = random_str(130)
+        self.target = random_str(target_len)
 
     def encrypt(self, data):
         processed = pad(random_str(randint(10, 100)) + data + self.target,
@@ -74,7 +74,7 @@ def collect_bytes(encrypt_fn, keysize):
                 encrypt_fn, keysize, _known)
             _known += next_byte
             fails = 0
-            print repr(next_byte)
+            #print repr(next_byte)
         except KeyError:
             fails += 1
             if fails > 10:
@@ -94,7 +94,7 @@ def solve_target(encrypt_fn, block_size):
 
 
 def test_solve_target():
-    cipher = rand_padded_ECB()
+    cipher = rand_padded_ECB(target_len=30)
     solution = solve_target(cipher.encrypt, block_size=block_size)
     assert solution[:len(cipher.target)] == cipher.target
 
