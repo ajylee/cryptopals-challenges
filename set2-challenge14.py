@@ -33,9 +33,11 @@ def strip_encrypt_fn(encrypt_fn, block_size, num_stim_blocks=6):
 
     def _bare_stripped_encrypt_fn(data):
         stim_blocks = random_str(block_size) * nstim
-        lguard_block = different_char(stim_blocks[0]) * block_size
-        rguard_block = different_char(stim_blocks[-1]) * block_size
-        rand_block = random_str(randint(0, 16))
+        lguard_block = (random_str(block_size // 2)
+                        + different_char(stim_blocks[0]) * (block_size // 2))
+        rguard_block = (different_char(stim_blocks[-1]) * (block_size // 2)
+                        + random_str(block_size // 2))
+        rand_block = random_str(randint(0, 16)) # ensure alignment is possible
 
         ctxt = encrypt_fn(rand_block
                           + lguard_block
