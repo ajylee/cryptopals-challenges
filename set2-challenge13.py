@@ -4,7 +4,7 @@ import string
 import random
 from collections import OrderedDict, Counter
 
-from toolz import valmap, identity, get
+from toolz import valmap, identity, get, take, tail, compose
 import pyparsing as pp
 from pyparsing import (Word, alphas, alphanums, Forward, ZeroOrMore, Literal,
                        Group, delimitedList, SkipTo)
@@ -12,6 +12,15 @@ from Crypto.Cipher import AES
 
 from block_crypto import random_str, pad, chunks
 
+
+def last_block(strn):
+    return strn[-16:]
+
+def second_block(strn):
+    return strn[16:32]
+
+str_take = compose(''.join, take)
+str_tail = compose(''.join, tail)
 
 
 class KEV(object):
@@ -153,7 +162,9 @@ def mk_role_user_reverse_lookup(profile_for):
     usernames = [pad('user', block_size=16, pad_str=pad_str)
                for pad_str in common_pads]
 
-    return {profile_for(username + DOMAIN)[:16]: username[-1]
+    first_block = lambda : random_username(16 - len('email='))
+
+    return {profile_for(first_block() + username + DOMAIN)[16:32]: username[-1]
         for username in usernames}
 
 
@@ -172,29 +183,34 @@ def try_repeatedly(thunk, max_tries):
 
 def get_base_cookie(profile_for, role_user_reverse_lookup):
     """Get a username length such that the last block has only one content byte"""
-    for ii in xrange(1, 30):
-        cookie = profile_for(random_username(ii) + DOMAIN)
-        #print repr(cookie[-16:])
-        if cookie[-16:] in role_user_reverse_lookup:
-            return cookie, role_user_reverse_lookup[cookie[-16:]]
+    for ii in xrange(5, 16 + 5):
+        username = random_username(ii)
+        cookie = profile_for(username + DOMAIN)
+        last_block = str_tail(16, cookie)
+        if repr(last_block) in map(repr, role_user_reverse_lookup.keys()):
+            return cookie, role_user_reverse_lookup[last_block]
 
 
 def mk_admin_cookie(profile_for):
     role_user_reverse_lookup = mk_role_user_reverse_lookup(profile_for)
 
     thunk = lambda : get_base_cookie(profile_for, role_user_reverse_lookup)
-    base_cookie, pad_str = try_repeatedly(thunk, max_tries=20)
-    print repr(base_cookie)
-    admin_block = profile_for(pad('admin', block_size=block_size, pad_str=pad_str))[:16]
+    base_cookie, pad_str = try_repeatedly(thunk, max_tries=1)
+
+    admin_block = second_block(
+        profile_for(
+            random_username(16 - len('email='))
+            + pad('admin', block_size=16, pad_str=pad_str)))
+
     admin_cookie = base_cookie[:-16] + admin_block
+
     return admin_cookie
 
 
 def test_mk_admin_cookie():
     pman = ProfileManager()
     cookie = mk_admin_cookie(pman.profile_for)
-    if cookie:
-        print pman.read_cookie(cookie)
+    assert pman.read_cookie(cookie)['role'] == 'admin'
 
 
 # Testing
