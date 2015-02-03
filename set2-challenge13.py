@@ -134,14 +134,12 @@ class Test(object):
           'role': 'user'})
     ]
 
-    @classmethod
-    def test_kev_decoder(cls):
-        for enc, dec in cls.dec_tests:
+    def test_kev_decoder(self):
+        for enc, dec in self.dec_tests:
             assert KEV.decode(enc) == dec
 
-    @classmethod
-    def test_profile_codec(cls):
-        for enc, dec in cls.profile_tests:
+    def test_profile_codec(self):
+        for enc, dec in self.profile_tests:
             assert Profile.encode(dec) == enc
 
 
