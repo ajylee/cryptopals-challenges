@@ -12,5 +12,9 @@ def b16_to_b64(ss):
     return toolz.pipe(ss, binascii.a2b_hex, base64.b64encode)
 
 
-assert b16_to_b64(test_input) == test_output
+def test_b16_to_b64():
+    assert b16_to_b64(test_input) == test_output
     
+
+if __name__ == '__main__':
+    test_b16_to_b64()
