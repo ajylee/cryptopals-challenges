@@ -55,33 +55,32 @@ def step_2(encrypt_fn, keysize):
     return _score < .45
 
 
+def get_next_byte(encrypt_fn, keysize, known):
+    lpad_len = (-len(known) - 1) % keysize
+    lpad = 'A' * lpad_len
+
+    entry_len = len(known) + lpad_len + 1
+
+    _inputs = (lpad + known + _c for _c in gen.chars)
+    _reverse_lookup = {encrypt_fn(_input)[:entry_len]: _input
+                       for _input in _inputs}
+
+    _with_unknown_byte = encrypt_fn(lpad)[:entry_len]
+
+    return _reverse_lookup[_with_unknown_byte][-1]
+
+
 def step_3(encrypt_fn, keysize):
     # decrypt unknown_string
 
     _target_string_len = len(encrypt_fn(''))
 
-    def get_next_byte(known):
-        lpad_len = (-len(known) - 1) % keysize
-        lpad = 'A' * lpad_len
-
-        entry_len = len(known) + lpad_len + 1
-
-        _inputs = (lpad + known + _c for _c in gen.chars)
-        _reverse_lookup = {encrypt_fn(_input)[:entry_len]: _input
-                           for _input in _inputs}
-
-        _with_unknown_byte = encrypt_fn(lpad)[:entry_len]
-
-        return _reverse_lookup[_with_unknown_byte][-1]
-
-
     _known = ''
 
     while len(_known) < _target_string_len:
-        _known += get_next_byte(_known)
+        _known += get_next_byte(encrypt_fn, keysize, _known)
 
     return _known
-
 
 
 if __name__ == '__main__':
