@@ -58,7 +58,7 @@ def step_2(encrypt_fn, keysize):
 def step_3(encrypt_fn, keysize):
     # decrypt unknown_string
 
-    _unknown_string_len = len(encrypt_fn(''))
+    _target_string_len = len(encrypt_fn(''))
 
     def get_next_byte(known):
         lpad_len = (-len(known) - 1) % keysize
@@ -77,7 +77,7 @@ def step_3(encrypt_fn, keysize):
 
     _known = ''
 
-    while len(_known) < _unknown_string_len:
+    while len(_known) < _target_string_len:
         _known += get_next_byte(_known)
 
     return _known
