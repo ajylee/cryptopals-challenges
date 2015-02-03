@@ -22,20 +22,32 @@ class rand_padded_ECB(object):
 
 
 
-def strip_encrypt_fn(encrypt_fn, block_size):
+def strip_encrypt_fn(encrypt_fn, block_size, num_stim_blocks=6):
+    # Combinator to strip encrypt_fn's random prepadding.
+    # Failure can occur if stim-response tactic gets a false positive.
+
+    nstim = num_stim_blocks
+
+    def different_char(char):
+        return chr((ord(char) + 10) % 256)
 
     def _bare_stripped_encrypt_fn(data):
-        nstim = 6
         stim_blocks = random_str(block_size) * nstim
+        lguard_block = different_char(stim_blocks[0]) * block_size
+        rguard_block = different_char(stim_blocks[-1]) * block_size
         rand_block = random_str(randint(0, 16))
 
-        ctxt = encrypt_fn(rand_block + stim_blocks + data)
+        ctxt = encrypt_fn(rand_block
+                          + lguard_block
+                          + stim_blocks
+                          + rguard_block
+                          + data)
 
         blocks = b = chunks(ctxt, size=block_size)
 
-        for ii in xrange(len(blocks) - nstim + 1):
+        for ii in xrange(len(blocks) - nstim):
             if all(b[ii] == b[ii + jj] for jj in xrange(1, nstim)):
-                return ''.join(b[ii + nstim:])
+                return ''.join(b[ii + nstim + 1:])  # + 1 due to guard block
 
     def _stripped_encrypt_fn(data):
         return try_repeatedly(lambda : _bare_stripped_encrypt_fn(data),
@@ -46,6 +58,8 @@ def strip_encrypt_fn(encrypt_fn, block_size):
 
 def collect_bytes(encrypt_fn, keysize):
     # decrypt tail target string, assuming encrypt_fn has no pre-padding
+    # Just like step_3 in Challenge 12 but retries on failure. Failures
+    # can occur due to incorrect stripping.
 
     _target_string_len = len(encrypt_fn(''))
 
@@ -64,7 +78,7 @@ def collect_bytes(encrypt_fn, keysize):
             if fails > 10:
                 raise GaveUp
             else:
-                print '!' * 10 + 'fail (x{})'.format(fails)
+                print '!' * 10 + ' fail (x{})'.format(fails)
                 continue
 
     return _known
@@ -72,7 +86,8 @@ def collect_bytes(encrypt_fn, keysize):
 
 def solve_target(encrypt_fn, block_size):
     """Decrypt target using oracle"""
-    stripped = strip_encrypt_fn(encrypt_fn, block_size)
+    stripped = strip_encrypt_fn(encrypt_fn, block_size,
+                                num_stim_blocks=6)
     return collect_bytes(stripped, block_size)
 
 
