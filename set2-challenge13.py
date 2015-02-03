@@ -10,7 +10,7 @@ from pyparsing import (Word, alphas, alphanums, Forward, ZeroOrMore, Literal,
                        Group, delimitedList, SkipTo)
 from Crypto.Cipher import AES
 
-from block_crypto import random_str, pad, chunks
+from block_crypto import random_str, pad, chunks, try_repeatedly
 
 
 def last_block(strn):
@@ -168,19 +168,6 @@ def mk_role_user_reverse_lookup(profile_for):
         for username in usernames}
 
 
-def try_repeatedly(thunk, max_tries):
-    tries = 0
-
-    while tries < max_tries:
-        maybe = thunk()
-        if maybe:
-            return maybe
-        else:
-            tries += 1
-
-    raise StandardError, 'not found'
-
-
 def get_base_cookie(profile_for, role_user_reverse_lookup):
     """Get a username length such that the last block has only one content byte"""
     for ii in xrange(5, 16 + 5):
@@ -237,8 +224,6 @@ def test_naive_attack_email():
     assert attack_profile['role'] == 'user'
     assert re.search('=user', decrypted_cookie)
     assert not re.search('=admin', decrypted_cookie)
-
-
 
 
 if __name__ == '__main__':

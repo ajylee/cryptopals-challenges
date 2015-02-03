@@ -69,3 +69,16 @@ class CBC(object):
             decrypted[ii] = strxor(cc.decrypt(_block_ii), prev_block)
 
         return ''.join(decrypted)
+
+
+def try_repeatedly(thunk, max_tries):
+    tries = 0
+
+    while tries < max_tries:
+        maybe = thunk()
+        if maybe:
+            return maybe
+        else:
+            tries += 1
+
+    raise StandardError, 'not found'
