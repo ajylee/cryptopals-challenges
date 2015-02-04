@@ -1,3 +1,4 @@
+import toolz as tz
 import itertools
 import random
 from Crypto.Cipher import AES
@@ -94,20 +95,15 @@ def try_repeatedly(thunk, max_tries):
 # Strip padding
 # --------------
 
-INVALID_CHARS = ''.join(
-    map(chr, set(xrange(32)) - {9,    # \t
-                                10,   # \n
-                                13,   # \r
-                                4,    # pad
-                            }))
-
-
 class InvalidPadding(Exception):
     pass
 
 
 def strip_PKCS7_padding(plaintext):
-    if any(_invalid in plaintext for _invalid in INVALID_CHARS):
+    padding_char = plaintext[-1]
+    pad_len = ord(padding_char)
+
+    if not plaintext.endswith(padding_char * pad_len):
         raise InvalidPadding
     else:
-        return plaintext.rstrip(chr(4))
+        return plaintext[:-pad_len]
