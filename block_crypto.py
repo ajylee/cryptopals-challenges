@@ -71,6 +71,9 @@ class CBC(object):
         return ''.join(decrypted)
 
 
+# Retry stochastic fn
+# --------------------
+
 class GaveUp(Exception):
     pass
 
@@ -86,3 +89,25 @@ def try_repeatedly(thunk, max_tries):
             tries += 1
 
     raise GaveUp, 'not found'
+
+
+# Strip padding
+# --------------
+
+INVALID_CHARS = ''.join(
+    map(chr, set(xrange(32)) - {9,    # \t
+                                10,   # \n
+                                13,   # \r
+                                4,    # pad
+                            }))
+
+
+class InvalidPadding(Exception):
+    pass
+
+
+def strip_PKCS7_padding(plaintext):
+    if any(_invalid in plaintext for _invalid in INVALID_CHARS):
+        raise InvalidPadding
+    else:
+        return plaintext.rstrip(chr(4))
