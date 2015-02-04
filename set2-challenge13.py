@@ -155,10 +155,8 @@ def random_username(length):
 
 
 def mk_role_user_reverse_lookup(profile_for):
-    common_pads = [' ', chr(4), chr(8)]
-
-    usernames = [pad('user', block_size=16, pad_str=pad_str)
-               for pad_str in common_pads]
+    # Could try alternate padding schemes
+    usernames = [pad('user', block_size=16)]
 
     first_block = lambda : random_username(16 - len('email='))
 
@@ -180,12 +178,12 @@ def mk_admin_cookie(profile_for):
     role_user_reverse_lookup = mk_role_user_reverse_lookup(profile_for)
 
     thunk = lambda : get_base_cookie(profile_for, role_user_reverse_lookup)
-    base_cookie, pad_str = try_repeatedly(thunk, max_tries=1)
+    base_cookie, _ = try_repeatedly(thunk, max_tries=1)
 
     admin_block = second_block(
         profile_for(
             random_username(16 - len('email='))
-            + pad('admin', block_size=16, pad_str=pad_str)))
+            + pad('admin', block_size=16)))
 
     admin_cookie = base_cookie[:-16] + admin_block
 

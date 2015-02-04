@@ -8,13 +8,9 @@ def strxor(s1, s2):
                for _c1, _c2 in itertools.izip(s1, s2))
 
 
-def pad(strn, block_size, pad_str=None):
+def pad(strn, block_size):
     pad_len = -len(strn) % block_size
-    if pad_str:
-        assert len(pad_str) == 1
-        return strn + pad_str * (-len(strn) % block_size)
-    else:
-        return strn + chr(pad_len) * pad_len
+    return strn + chr(pad_len) * pad_len
 
 
 def xor_cipher(data, key):
