@@ -10,7 +10,8 @@ from pyparsing import (Word, alphas, alphanums, Forward, ZeroOrMore, Literal,
                        Group, delimitedList, SkipTo)
 from Crypto.Cipher import AES
 
-from block_crypto import random_str, pad, chunks, try_repeatedly
+from block_crypto import (random_str, pad, chunks, try_repeatedly,
+                          strip_PKCS7_padding)
 
 
 def last_block(strn):
@@ -80,7 +81,6 @@ class ProfileManager(object):
         self.profiles = {}
         self.uids = {0}
         self.cipher = AES.new(random_str(16), AES.MODE_ECB)
-        self.pad_str = chr(4)
 
     def unsafe_get_profile_for(self, email):
         _maybe_profile = self.profiles.get(email, None)
@@ -105,12 +105,11 @@ class ProfileManager(object):
             self.unsafe_add_profile(**profile)
 
         return self.cipher.encrypt(pad(Profile.encode(profile),
-                                block_size=self.cipher.block_size,
-                                pad_str=self.pad_str))
+                                    block_size=self.cipher.block_size))
 
     def read_cookie(self, cookie):
         decrypted = self.cipher.decrypt(cookie)
-        stripped = decrypted.rstrip(self.pad_str)
+        stripped = strip_PKCS7_padding(decrypted)
         return Profile.decode(stripped)
 
     def unsafe_add_profile(self, email, uid, role):
@@ -223,8 +222,8 @@ def test_naive_attack_email():
 
 
 if __name__ == '__main__':
-    Test.test_kev_decoder()
-    Test.test_profile_codec()
+    Test().test_kev_decoder()
+    Test().test_profile_codec()
 
     #r = SkipTo(KEV.key, include=True).parseString('@abc')
     test_naive_attack_email()

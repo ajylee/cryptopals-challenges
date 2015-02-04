@@ -70,6 +70,17 @@ def get_next_byte(encrypt_fn, keysize, known):
     return _reverse_lookup[_with_unknown_byte][-1]
 
 
+def is_at_end(encrypt_fn, block_size,
+              known_bytes, next_byte):
+    if next_byte == chr(1):
+        padded = pad(known_bytes, block_size)
+        nn = len(padded)
+        ct = encrypt_fn(padded)
+        return ct[:nn] == ct[nn:]
+    else:
+        return False
+
+
 def step_3(encrypt_fn, keysize):
     # decrypt unknown_string
 
@@ -78,9 +89,12 @@ def step_3(encrypt_fn, keysize):
     _known = ''
 
     while len(_known) < _target_string_len:
-        _known += get_next_byte(encrypt_fn, keysize, _known)
+        _next = get_next_byte(encrypt_fn, keysize, _known)
 
-    return _known
+        if is_at_end(encrypt_fn, keysize, _known, _next):
+            return _known
+        else:
+            _known += _next
 
 
 if __name__ == '__main__':
