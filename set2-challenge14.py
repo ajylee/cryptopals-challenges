@@ -72,18 +72,19 @@ def collect_bytes(encrypt_fn, keysize):
         try:
             next_byte = set2_challenge12.get_next_byte(
                 encrypt_fn, keysize, _known)
-            _known += next_byte
-            fails = 0
-            #print repr(next_byte)
+            if set2_challenge12.is_at_end(encrypt_fn, keysize, _known, next_byte):
+                return _known
+            else:
+                _known += next_byte
+                fails = 0
+                continue
         except KeyError:
             fails += 1
-            if fails > 10:
+            if fails > 5:
                 raise GaveUp
             else:
                 print '!' * 10 + ' fail (x{})'.format(fails)
                 continue
-
-    return _known
 
 
 def solve_target(encrypt_fn, block_size):
