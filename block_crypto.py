@@ -114,11 +114,15 @@ class InvalidPadding(Exception):
     pass
 
 
-def strip_PKCS7_padding(plaintext):
+def valid_PKCS7_padding(plaintext):
     padding_char = plaintext[-1]
     pad_len = ord(padding_char)
+    return plaintext.endswith(padding_char * pad_len)
 
-    if not plaintext.endswith(padding_char * pad_len):
+
+def strip_PKCS7_padding(plaintext):
+    if not valid_PKCS7_padding(plaintext):
         raise InvalidPadding
     else:
+        pad_len = ord(plaintext[-1])
         return plaintext[:-pad_len]
