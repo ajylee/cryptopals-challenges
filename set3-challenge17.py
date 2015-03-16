@@ -18,10 +18,13 @@
 
 
 from random import randint, rand_str
-from block_crypto import CBC
+import Crypto.Random
+from block_crypto import RandCBC, strxor, pad
+import toolz
+from copy import copy
 
 
-POSSIBLE_PREPADS = """
+POSSIBLE_PLAINTEXTS = """
 MDAwMDAwTm93IHRoYXQgdGhlIHBhcnR5IGlzIGp1bXBpbmc=
 MDAwMDAxV2l0aCB0aGUgYmFzcyBraWNrZWQgaW4gYW5kIHRoZSBWZWdhJ3MgYXJlIHB1bXBpbic=
 MDAwMDAyUXVpY2sgdG8gdGhlIHBvaW50LCB0byB0aGUgcG9pbnQsIG5vIGZha2luZw==
@@ -33,3 +36,92 @@ MDAwMDA3SSdtIG9uIGEgcm9sbCwgaXQncyB0aW1lIHRvIGdvIHNvbG8=
 MDAwMDA4b2xsaW4nIGluIG15IGZpdmUgcG9pbnQgb2g=
 MDAwMDA5aXRoIG15IHJhZy10b3AgZG93biBzbyBteSBoYWlyIGNhbiBibG93
 """.strip().split('\n')
+
+BLOCK_SIZE = 16
+
+
+def string_assoc(strn, idx, char):
+    return strn[:idx] + char + strn[idx + 1:]
+
+
+def _gen_chrs():
+    return (chr(ii) for ii in xrange(256))
+
+
+def assoc_solved_bytes(ciphertext, solved_bytes, replacement_chr):
+    text = ciphertext
+
+    for byte_idx in xrange(-len(solved_bytes), 0):
+        xor_byte = strxor(solved_bytes[byte_idx], replacement_chr)
+        text = string_assoc(text, byte_idx - block_size, xor_byte)
+
+    return text
+
+
+def solve_byte(PKCS7_oracle, block_size, ciphertext, byte_pos, solved_bytes):
+    padding_chr = chr(len(solved_bytes) + 1)
+    pad_edited = assoc_solved_bytes(ciphertext, solved_bytes, padding_chr))
+
+    for _xor_byte in _gen_chrs():
+        _trial_text = string_assoc(pad_edited, byte_pos - block_size, _xor_byte)
+        if PKCS7_oracle(_trial_text):
+            solved_byte = strxor(padding_chr, _xor_byte)
+            yield solved_byte
+
+
+def solve_last_byte(PKCS7_oracle, block_size, ciphertext):
+    byte_pos = -1
+    solved_bytes = ''
+
+    for _trial_solved_byte in solve_byte(
+            PKCS7_oracle, block_size, ciphertext, byte_pos, solved_bytes):
+
+        pad_edited = assoc_solved_bytes(ciphertext, _trial_solved_byte, chr(1))
+        _variation = string_assoc(pad_edited, byte_pos - block_size - 1,
+                                  chr(ord(_trial[-1]) + 1))
+
+        if PKCS7_oracle(_variation):
+            return _trial_solved_byte
+
+
+def solve_last_block(PKCS7_oracle, block_size, ciphertext)
+    solved_bytes = solve_last_byte(
+        PKCS7_oracle, block_size, ciphertext=ciphertext)
+
+    for byte_pos in xrange(-2, -block_size - 1, -1):
+        solved_bytes = (
+            solve_byte(PKCS7_oracle, block_size,
+                       ciphertext, byte_pos, solved_bytes)
+            + solved_bytes
+        )
+
+    return solved_bytes
+
+
+def solve_ciphertext(PKCS7_oracle, block_size, ciphertext):
+    nblocks = ciphertext / block_size - 1  # (first block is IV)
+
+    solved_text = ''
+
+    for block_ii in xrange(-1, -nblocks - 1, -1):
+        lopped = ciphertext[:block_ii * block_size]
+        solved_text = solve_last_block(lopped) + solved_text
+
+    return solved
+
+
+def main():
+    block_size = BLOCK_SIZE
+
+    plaintext = random.choice(POSSIBLE_PLAINTEXTS)
+
+    cipher = RandCBC(BLOCK_SIZE)
+    ciphertext = cipher.encrypt(pad(plaintext))
+
+    oracle = toolz.compose(valid_PKCS7_padding, cipher.decrypt)
+
+    assert (
+        strip_PKCS7_padding(solve_ciphertext(
+            oracle, block_size=BLOCK_SIZE, ciphertext=text))
+        == plaintext
+    )
