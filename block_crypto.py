@@ -1,7 +1,12 @@
+import math
 import toolz as tz
 import itertools
 import random
 from Crypto.Cipher import AES
+from bin_more import chrs as int_to_chrs
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def strxor(s1, s2):
@@ -95,6 +100,45 @@ class RandCBC(object):
         iv = iv_ciphertext[:self.block_size]
         ciphertext = iv_ciphertext[self.block_size:]
         return CBC(key=self.key, iv=iv, encipher_iv=self.encipher_iv).decrypt(ciphertext)
+
+
+class CTR(object):
+    def __init__(self, key, nonce):
+        self.nonce = nonce
+
+        self._ecb_cipher = AES.new(key, AES.MODE_ECB)
+        self.block_size = len(key)
+        assert self.block_size % 2 == 0
+
+    def keystream_block(self, count):
+        half_width = self.block_size // 2
+
+        def _pad0(ss):
+            assert len(ss) <= half_width
+            return ss + (half_width - len(ss)) * chr(0)
+
+        plain = _pad0(int_to_chrs(self.nonce)) + _pad0(int_to_chrs(count))
+        logger.debug('raw xor_key {}'.format(repr(plain)))
+        return self._ecb_cipher.encrypt(plain)
+
+    def transcrypt_block(self, count, block):
+        xorkey = self.keystream_block(count)[:len(block)]
+        return strxor(xorkey, block)
+
+    def encrypt(self, data):
+        def blocks():
+            nblocks = int(math.ceil(float(len(data)) / float(self.block_size)))
+            for count in xrange(nblocks):
+                block = data[count * self.block_size: (count + 1) * self.block_size]
+                logger.debug('{} {}'.format(count, repr(block)))
+                yield (count, block)
+
+        return ''.join(self.transcrypt_block(count, text_block)
+                       for count, text_block in blocks())
+
+    def decrypt(self, data):
+        ## encryption / decryption is symmetric
+        return self.encrypt(data)
 
 
 # Retry stochastic fn
