@@ -10,7 +10,11 @@ def strxor(s1, s2):
 
 
 def pad(strn, block_size):
-    pad_len = -len(strn) % block_size
+    if len(strn) % block_size != 0:
+        pad_len = -len(strn) % block_size
+    else:
+        pad_len = block_size
+
     return strn + chr(pad_len) * pad_len
 
 
@@ -117,7 +121,7 @@ class InvalidPadding(Exception):
 def valid_PKCS7_padding(plaintext):
     padding_char = plaintext[-1]
     pad_len = ord(padding_char)
-    return plaintext.endswith(padding_char * pad_len)
+    return (pad_len > 0) and plaintext.endswith(padding_char * pad_len)
 
 
 def strip_PKCS7_padding(plaintext):
