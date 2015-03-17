@@ -75,16 +75,16 @@ class CBC(object):
 class RandCBC(object):
     def __init__(self, block_size):
         self.block_size = block_size
-        self.key = rand_str(self.block_size)
+        self.key = random_str(self.block_size)
 
     def encrypt(self, data):
-        iv = rand_str(self.block_size)
+        iv = random_str(self.block_size)
         return iv + CBC(key=self.key, iv=iv).encrypt(data)
 
     def decrypt(self, iv_ciphertext):
         iv = iv_ciphertext[:self.block_size]
         ciphertext = iv_ciphertext[self.block_size:]
-        return CBC(key=self.key, iv=iv).decrypt(data)
+        return CBC(key=self.key, iv=iv).decrypt(ciphertext)
 
 
 # Retry stochastic fn
