@@ -44,11 +44,16 @@ def chunks(ss, size, num_chunks=None):
 
 
 class CBC(object):
-    def __init__(self, key, iv):
+    def __init__(self, key, iv, encipher_iv=False):
         self._ecb_cipher = AES.new(key, AES.MODE_ECB)
         self.block_size = len(key)
         self._iv = iv
-        self._cipher_iv = self._ecb_cipher.encrypt(iv)
+
+        if encipher_iv:
+            # enciphering the iv hinders PKCS7 oracle
+            self._cipher_iv = self._ecb_cipher.encrypt(iv)
+        else:
+            self._cipher_iv = self._iv
 
     def encrypt(self, strn):
         cc = self._ecb_cipher
@@ -77,18 +82,19 @@ class CBC(object):
 
 
 class RandCBC(object):
-    def __init__(self, block_size):
+    def __init__(self, block_size, encipher_iv=False):
         self.block_size = block_size
         self.key = random_str(self.block_size)
+        self.encipher_iv = encipher_iv
 
     def encrypt(self, data):
         iv = random_str(self.block_size)
-        return iv + CBC(key=self.key, iv=iv).encrypt(data)
+        return iv + CBC(key=self.key, iv=iv, encipher_iv=self.encipher_iv).encrypt(data)
 
     def decrypt(self, iv_ciphertext):
         iv = iv_ciphertext[:self.block_size]
         ciphertext = iv_ciphertext[self.block_size:]
-        return CBC(key=self.key, iv=iv).decrypt(ciphertext)
+        return CBC(key=self.key, iv=iv, encipher_iv=self.encipher_iv).decrypt(ciphertext)
 
 
 # Retry stochastic fn
