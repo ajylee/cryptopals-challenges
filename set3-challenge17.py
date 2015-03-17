@@ -74,12 +74,6 @@ def solve_byte(PKCS7_oracle, block_size, ciphertext, byte_pos, solved_bytes):
                               ^ ord(_xor_byte)
                               ^ ord(ciphertext[byte_pos - block_size]))
 
-            #print 'padding_byte', ord(padding_chr)
-            #print '_xor_byte', ord(_xor_byte)
-            #print 'base_xor', ord(ciphertext[byte_pos - block_size])
-            #assert solved_byte == strxor(ciphertext[byte_pos - block_size],
-            #                             strxor(padding_chr, _xor_byte))
-
             yield solved_byte
 
 
@@ -119,8 +113,6 @@ def solve_last_block(PKCS7_oracle, block_size, ciphertext):
 
 def solve_ciphertext(PKCS7_oracle, block_size, ciphertext):
     nblocks = len(ciphertext) // block_size - 1  # (first block is IV)
-    print 'nblocks', nblocks
-
     solved_text = ''
 
     for block_ii in xrange(-1, -nblocks - 1, -1):
@@ -131,7 +123,6 @@ def solve_ciphertext(PKCS7_oracle, block_size, ciphertext):
         else:
             lopped = ciphertext
 
-        print len(lopped), block_ii, repr(lopped)
         solved_text = (solve_last_block(PKCS7_oracle, block_size, lopped)
                        + solved_text)
 
@@ -141,8 +132,6 @@ def solve_ciphertext(PKCS7_oracle, block_size, ciphertext):
 def test_solve_last_byte():
     plaintext = random.choice(POSSIBLE_PLAINTEXTS)
     padded = pad(plaintext, BLOCK_SIZE)
-
-    print repr(padded)
 
     cipher = RandCBC(BLOCK_SIZE)
     ciphertext = cipher.encrypt(plaintext)
@@ -155,7 +144,7 @@ def test_solve_last_byte():
     )
 
 
-def main():
+def test_break_PKCS7_oracle():
     block_size = BLOCK_SIZE
 
     plaintext = random.choice(POSSIBLE_PLAINTEXTS)
@@ -165,16 +154,22 @@ def main():
 
     oracle = toolz.compose(valid_PKCS7_padding, cipher.decrypt)
 
-    assert (
-        strip_PKCS7_padding(solve_ciphertext(
+    ans = strip_PKCS7_padding(solve_ciphertext(
             oracle, block_size=BLOCK_SIZE, ciphertext=ciphertext))
-        == plaintext
-    )
+
+    logging.info(repr(plaintext))
+    logging.info(repr(ans))
+
+    assert ans == plaintext
+
+
+def main():
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.INFO)
+    test_solve_last_byte()
+    for ii in xrange(5):
+        test_break_PKCS7_oracle()
 
 
 if __name__ == '__main__':
-    logging.basicConfig()
-    #logging.getLogger().setLevel(logging.DEBUG)
-    test_solve_last_byte()
-    for ii in xrange(10):
-        main()
+    main()
