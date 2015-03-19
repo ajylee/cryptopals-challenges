@@ -18,7 +18,7 @@ CONSONANTS = ''.join(letter for letter in string.lowercase
                      if letter not in VOWELS)
 
 COMMON_PAIRS = ['ch', 'st', 'sh', 'sm', 'sn', 'rt', 'th', 'nt', 'sp', 'nd', 'ea',
-                'ay', 'tr']
+                'ay', 'tr', 'rn']
 BAD_PAIRS = ['hx', 'qa', '  ', 'qe', '.t', ',t']
 
 def score_english_char_pair(char1, char2):
@@ -91,7 +91,7 @@ def guess_one_key_byte(ciphertexts, byte_idx, prev_byte):
     return _sorted[0]
 
 
-def guess_keystream(ciphertexts):
+def auto_guess_keystream(ciphertexts):
     max_len = max(tz.map(len, ciphertexts))
 
     ans = ''
@@ -105,6 +105,28 @@ def guess_keystream(ciphertexts):
     return ans
 
 
+def manually_correct(ciphertexts, orig_keystream, manual_corrections):
+    """
+    For example, suppose::
+
+        manual_corrections = {(5, 10): 'hello'}
+
+    This indicates the plaintext starting at line 5, column 10, reads "hello".
+    This information is used to correct the keystream.
+
+    """
+
+    new_keystream = list(orig_keystream)
+
+    for (line_no, col_no), manual_bytes in manual_corrections.items():
+        width = len(manual_bytes)
+        ct = ciphertexts[line_no][col_no:col_no + width]
+        new_keystream[col_no:col_no + width] = (
+            list(strxor(ct, manual_bytes)))
+
+    return ''.join(new_keystream)
+
+
 def main():
     key = Crypto.Random.new().read(BLOCK_SIZE)
     cipher = CTR(key=key, nonce=NONCE)
@@ -116,13 +138,26 @@ def main():
             ciphertexts.append(cipher.encrypt(base64.b64decode(line)))
 
 
-    guessed_keystream = guess_keystream(ciphertexts)
+    k0 = auto_guess_keystream(ciphertexts)
 
-    logging.info('Guessed keystream {}'
-                 .format(repr(guessed_keystream)))
+    # Manual corrections produced after considering auto deciphered text.
+    manual_corrections = {(4, 32): 'head',
+                          (37, 36): 'n,',
+                          (0, 0): 'I'}
 
-    for text in ciphertexts:
-        logging.info(strxor(text, guessed_keystream))
+    k1 = manually_correct(ciphertexts, k0, manual_corrections)
+
+
+    solved_keystream = k1
+
+    logging.info('Solved keystream: {}'
+                 .format(base64.b64encode(solved_keystream)))
+
+    column_indication_grid = '--: ' + 4 * (4 * ' ' + '.' + 4 * ' ' + '|')
+    logging.info(column_indication_grid)
+
+    for no, text in enumerate(ciphertexts):
+        logging.info('{:>2}: {}'.format(no, strxor(text, solved_keystream)))
 
 
 if __name__ == '__main__':
