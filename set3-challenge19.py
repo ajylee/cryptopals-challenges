@@ -127,7 +127,7 @@ def manually_correct(ciphertexts, orig_keystream, manual_corrections):
     return ''.join(new_keystream)
 
 
-def main():
+def solve19():
     key = Crypto.Random.new().read(BLOCK_SIZE)
     cipher = CTR(key=key, nonce=NONCE)
 
@@ -160,8 +160,43 @@ def main():
         logging.info('{:>2}: {}'.format(no, strxor(text, solved_keystream)))
 
 
+def solve20():
+    key = Crypto.Random.new().read(BLOCK_SIZE)
+    cipher = CTR(key=key, nonce=NONCE)
+
+    ciphertexts = []
+
+    with open('20.txt', 'r') as fil:
+        for line in fil.readlines():
+            ciphertexts.append(cipher.encrypt(base64.b64decode(line)))
+
+
+    k0 = auto_guess_keystream(ciphertexts)
+
+    # Manual corrections produced after considering auto deciphered text.
+    manual_corrections = {(22, 96): 't',
+                          (26, 93): 'observe, ',
+                          (21, 100): ' peace',
+                          (26, 105): 'whole scenery',
+                          (46, 103): 'but the money', # googled "don't nothin move but"
+    }
+
+    k1 = manually_correct(ciphertexts, k0, manual_corrections)
+
+    solved_keystream = k1
+
+    logging.info('Solved keystream: {}'
+                 .format(base64.b64encode(solved_keystream)))
+
+    column_indication_grid = '--: ' + 4 * (4 * ' ' + '.' + 4 * ' ' + '|')
+    logging.info(column_indication_grid)
+
+    for no, text in enumerate(ciphertexts):
+        logging.info('{:>2}: {}'.format(no, strxor(text, solved_keystream)))
+
+
 if __name__ == '__main__':
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
-
-    main()
+    solve19()
+    solve20()
