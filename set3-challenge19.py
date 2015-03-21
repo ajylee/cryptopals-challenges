@@ -37,6 +37,7 @@ def check_key_part(ciphertexts, key_idx, key_part):
             if any(byte not in COMMON_ENGLISH_CHARS for byte in trial_plaintext):
                 return False
             else:
+                # there should be more letters than anything else
                 for byte in trial_plaintext:
                     if byte in string.letters:
                         score += 1
