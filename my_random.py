@@ -44,31 +44,31 @@ class MersenneTwister(object):
                 self.state[ii] = self.state[ii] ^ 2567483615
 
 
-def test_mersenne_twister():
+def plot_mersenne_twister_distribution():
     seed = 0x3ab10e3471c1
     mt = MersenneTwister(seed)
 
-    count = {}
+    bin_size = 2**28
+    count = [0] * (2 ** 32 / bin_size)
 
     for ii in xrange((2 << 20) - 1):
         if ii % (2 << 18) == 0:
             print len(bin(ii)) - 2, bin(ii)
 
         n = mt.extract_number()
-        count[n] = count.get(n, 0) + 1
+        count[n // bin_size] += 1
 
+    import matplotlib.pyplot as plt
+    import numpy as np
 
-    #import matplotlib.pyplot as plt
-    #import numpy as np
+    x = range(len(count))
+    y = count
 
-    #x = np.array(count.keys())
-    #y = np.array([count[k] for k in x])
-
-    #plt.ion()
-    #plt.clf()
-    #plt.plot(x, y, ls='None', marker='o')
-    #plt.show()
+    plt.ion()
+    plt.clf()
+    plt.plot(x, y, ls='None', marker='o')
+    plt.show()
 
 
 if __name__ == '__main__':
-    test_mersenne_twister()
+    plot_mersenne_twister_distribution()
