@@ -1,4 +1,5 @@
 from block_crypto import CBC, random_str, chunks
+from cookies import CookieSystem
 
 
 class random_CBC_system(CookieSystem):
