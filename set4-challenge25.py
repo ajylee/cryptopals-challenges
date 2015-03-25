@@ -1,6 +1,6 @@
 from __future__ import division
 import Crypto.Random
-from block_crypto import CTR
+from block_crypto import CTR, strxor
 from bin_more import ords as str_to_ords
 
 BLOCK_SIZE = 16
@@ -38,5 +38,21 @@ def test_edit():
     assert ee.decrypt(edited) == 'this is the edited   plaintext'
 
 
+def solve_plaintext(edit_method, ciphertext):
+    new_text = 'A' * len(ciphertext)
+    keystream = strxor(edit_method(ciphertext, 0, new_text),
+                       new_text)
+
+    return strxor(keystream, ciphertext)
+
+
+def test_solve_plaintext():
+    ee = EncryptedEditor()
+    plaintext = 'this is the secret message. Secret! Secret!'
+    ciphertext = ee.encrypt(plaintext)
+    assert solve_plaintext(ee.edit, ciphertext) == plaintext
+
+
 if __name__ == '__main__':
     test_edit()
+    test_solve_plaintext()
