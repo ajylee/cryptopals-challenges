@@ -1,5 +1,7 @@
 from __future__ import division
 import Crypto.Random
+from Crypto.Cipher import AES
+import base64
 from block_crypto import CTR, strxor
 from bin_more import ords as str_to_ords
 
@@ -48,8 +50,13 @@ def solve_plaintext(edit_method, ciphertext):
 
 def test_solve_plaintext():
     ee = EncryptedEditor()
-    plaintext = 'this is the secret message. Secret! Secret!'
+    ecb = AES.new('YELLOW SUBMARINE', AES.MODE_ECB) # see set1, challenge7
+
+    with open('challenge-data/25.txt', 'r') as fio:
+        plaintext = ecb.decrypt(base64.b64decode(fio.read()))
+
     ciphertext = ee.encrypt(plaintext)
+
     assert solve_plaintext(ee.edit, ciphertext) == plaintext
 
 
