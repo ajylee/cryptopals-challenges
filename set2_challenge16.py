@@ -16,11 +16,8 @@ def sandwich(strn):
     return ''.join([pre, strn, post])
 
 
-class random_CBC_system(object):
-    def __init__(self):
-        self.block_size = 16
-        self.cipher = CBC(key=random_str(self.block_size),
-                       iv=random_str(self.block_size))
+class CookieSystem(object):
+    """Abstract base class. Instances must set self.cipher """
 
     def process_data(self, userdata):
         return self.cipher.encrypt(sandwich(quote(userdata)))
@@ -28,6 +25,13 @@ class random_CBC_system(object):
     def is_admin(self, ciphertext):
         plain = self.cipher.decrypt(ciphertext)
         return 'admin=true' in plain.split(';')
+
+
+class random_CBC_system(CookieSystem):
+    def __init__(self):
+        self.block_size = 16
+        self.cipher = CBC(key=random_str(self.block_size),
+                       iv=random_str(self.block_size))
 
 
 def flip_least_bit(char):
