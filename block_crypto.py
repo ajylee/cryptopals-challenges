@@ -103,7 +103,17 @@ class RandCBC(object):
 
 
 class CTR(object):
+    """Counter stream crypto based on AES ECB"""
+
     def __init__(self, key, nonce):
+        """--
+
+        :param key: for AES ECB
+        :param nonce: Integer that fits in (block_size / 2) bytes (usually 64
+                      bits)
+
+        """
+
         self.nonce = nonce
 
         self._ecb_cipher = AES.new(key, AES.MODE_ECB)
