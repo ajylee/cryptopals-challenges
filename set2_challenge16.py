@@ -1,37 +1,12 @@
 from block_crypto import CBC, random_str, chunks
 
-CONTROL_CHARS = ';='
-
-
-def quote(strn):
-    def _quote_char(strn, char):
-        return strn.replace(char, '\\' + char)
-
-    return reduce(_quote_char, CONTROL_CHARS, strn)
-
-
-def sandwich(strn):
-    pre = "comment1=cooking%20MCs;userdata="
-    post = ";comment2=%20like%20a%20pound%20of%20bacon"
-    return ''.join([pre, strn, post])
-
-
-class CookieSystem(object):
-    """Abstract base class. Instances must set self.cipher """
-
-    def process_data(self, userdata):
-        return self.cipher.encrypt(sandwich(quote(userdata)))
-
-    def is_admin(self, ciphertext):
-        plain = self.cipher.decrypt(ciphertext)
-        return 'admin=true' in plain.split(';')
-
 
 class random_CBC_system(CookieSystem):
     def __init__(self):
         self.block_size = 16
-        self.cipher = CBC(key=random_str(self.block_size),
-                       iv=random_str(self.block_size))
+        cipher = CBC(key=random_str(self.block_size),
+                     iv=random_str(self.block_size))
+        CookieSystem.__init__(self, cipher=cipher)
 
 
 def flip_least_bit(char):
@@ -93,12 +68,6 @@ def mk_admin_data(process_fn, block_size=16):
     b[edit_idx] = edit_bits(b[edit_idx])
 
     return ''.join(b)
-
-
-def test_quote():
-    assert quote('abc;123') == r'abc\;123'
-    assert quote('abc=123') == r'abc\=123'
-
 
 def test_is_admin():
     server = random_CBC_system()
