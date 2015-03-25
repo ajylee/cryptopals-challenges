@@ -8,10 +8,12 @@ from my_random import MersenneTwister
 import memo
 from block_crypto import strxor
 
+from set3_challenge23 import untemper
+
 
 def _get_mt_state(seed):
     mt = MersenneTwister(ii)
-    mt.generate_seeds.state
+    mt.generate_numbers()
     return mt.state
 
 
@@ -82,6 +84,21 @@ def solve_mt_key(idx, int32_keystream):
             return key
 
 
+def snip_to_align(idx, text):
+    """Largest substring S s.t. S aligned with 32-bit blocks
+
+    :param idx: the index of selected text within the output stream.
+    :param text: selected text to align
+
+    """
+
+    front_cut = (-idx % 4)
+    back_cut  = len(text) % 4
+
+    return text[front_cut: len(text)-back_cut]
+    
+
+
 def test_strn_to_int32():
     assert _int32_to_bytes(_strn_to_int32('abcd')[0]) == [97, 98, 99, 100]
 
@@ -89,22 +106,20 @@ def test_strn_to_int32():
 def test_solve_mt_key():
     mtc = MTCipher(random.randint(0, 2**16 - 1))
 
-    random_pad = '' # Crypto.Random.new().read(random.randint(0, 300))
-    known_text = 'hello, this is the messa'
+    random_pad = Crypto.Random.new().read(random.randint(0, 300))
+    known_text = 'hello, this is the message.'
     plaintext = random_pad + known_text
 
-    ciphertext = mtc.encrypt(plaintext)
-    keystream = strxor(ciphertext[-len(known_text):], known_text)
+    raw_ciphertext = mtc.encrypt(plaintext)
 
-    idx = int(ceil((len(plaintext) - len(known_text)) / 4))
-    assert idx == 0
+    ciphertext = raw_ciphertext[-len(known_text):]
+    prepad_len = len(raw_ciphertext) - len(known_text)
+    
+    keystream_part = strxor(snip_to_align(prepad_len, ciphertext),
+                            snip_to_align(prepad_len, known_text))
 
-    mt = MersenneTwister(mtc.seed)
-    mt.generate_numbers()
-    print map(_int32_to_bytes, mt.state[:6])
-    print map(_int32_to_bytes, _strn_to_int32(keystream))
-
-    key = solve_mt_key(idx, _strn_to_int32(keystream))
+    idx = int(ceil(prepad_len / 4))
+    key = solve_mt_key(idx, map(untemper, _strn_to_int32(keystream_part)))
 
     assert key == mtc.seed
 
