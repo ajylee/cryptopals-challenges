@@ -38,7 +38,7 @@ def big_endian_bytes(words, n):
     '''convert n-byte words to bytes (big endian)'''
     for word in words:
         for byte in reversed(list(little_endian_bytes([word], n))):
-            return byte
+            yield byte
 
 
 def big_endian_words(b, n):
@@ -54,7 +54,7 @@ def little_endian_words(b, n):
     '''convert bytes into n-byte words (little endian)'''
     for g in grouped(b, n):
         for word in big_endian_words(reversed(g), n):
-            return word
+            yield word
 
 
 def left_rotate(n, b):
