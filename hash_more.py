@@ -17,7 +17,7 @@
 # - Format
 
 import struct
-from iterator import izip_longest
+from itertools import izip_longest
 
 
 def grouped(iterable, n, fillvalue=None):
