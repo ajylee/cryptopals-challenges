@@ -35,25 +35,23 @@ def url_get(port, filename, signature):
     return success, time.time() - start
 
 
-def solve_byte(port, filename, orig_guess, offset):
-    new_guess = bytearray(orig_guess)
+def solve_byte(oracle):
     t0 = None
+    prev_byte = None
 
     for bb in xrange(0x0100):
-        new_guess[offset] = bb
-        success, t1 = url_get(port, filename, binascii.hexlify(new_guess))
+        success, t1 = oracle(bb)
 
-        if t0 is None:
-            t0 = t1
-            continue
-        elif significantly_long(t1 - t0):
+        if t0 is not None and significantly_long(t1 - t0):
             if t1 > t0:
-                return new_guess
+                return bb
             else:
-                return orig_guess
+                return prev_byte
         elif success:
-            return new_guess
+            return bb
         else:
+            t0 = t1
+            prev_byte = bb
             continue
     else:
         raise ValueError, 'no differences in guesses found'
@@ -63,7 +61,13 @@ def solve_hash(port, filename):
     curr_hash = bytearray(HMAC_SIZE * [0])
 
     for ii in xrange(len(curr_hash)):
-        curr_hash = solve_byte(port, filename, curr_hash, ii)
+        _new_guess = bytearray(curr_hash)
+
+        def oracle(bb):
+            _new_guess[ii] = bb
+            return url_get(port, filename, binascii.hexlify(_new_guess))
+
+        curr_hash[ii] = solve_byte(oracle)
         logging.info(repr(binascii.hexlify(curr_hash)))
 
     return curr_hash
