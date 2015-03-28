@@ -4,7 +4,7 @@ from set1_challenge3 import top_ciphered, score
 
 
 def solve():
-    with open('4.txt','r') as fil:
+    with open('challenge-data/4.txt','r') as fil:
         for num, line in enumerate(fil.readlines()):
 
             _l = binascii.unhexlify(line.strip())
