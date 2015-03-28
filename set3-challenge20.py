@@ -198,5 +198,9 @@ def solve20():
 if __name__ == '__main__':
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
+
+    import block_crypto
+    logging.getLogger(block_crypto.__name__).setLevel(logging.INFO)
+
     solve19()
     solve20()
