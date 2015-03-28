@@ -1,9 +1,13 @@
 # must start hmac-server.rb first
 
+from __future__ import division
 import time
 import urllib2
 import binascii
 import logging
+import math as ma
+import numpy as np
+from statistics import uncertainty_of_mean
 
 
 PORT = 9567
@@ -84,6 +88,85 @@ def solve_hash_chall31(port, filename):
     return curr_hash
 
 
+def stats(timer):
+    """Gives the significant time interval and the number
+    of trials necessary to achieve it.
+
+    :param timer: timer(hmac_hash) -> time
+
+    """
+
+    post_pad = '\x00' * (HMAC_SIZE - 1)
+    zero_times = []     # collection of times for byte 0x00
+    running_total = [0] * 0x100
+    count = 0
+
+    while True:
+        largest_diff = 0
+
+        for bb in xrange(0x100):
+            _t = timer(chr(bb) + post_pad)
+
+            if bb == 0:
+                zero_times.append(_t)
+
+            running_total[bb] += _t
+
+            largest_diff = max(largest_diff,
+                               running_total[bb] - running_total[0])
+
+        count += 1
+
+        logging.info('count {}'.format(count))
+
+        if count > 1:
+            unc = np.std(zero_times, ddof=1)
+            unc_of_unc = unc / (2. * ma.sqrt(count - 1))
+
+            lhs = 5 * (unc + unc_of_unc) * ma.sqrt(HMAC_SIZE * count)
+            if lhs < largest_diff:
+                significant_interval = (largest_diff / count) / 2
+
+                base_necessary_trials = (unc / (2 * significant_interval)) + 1.
+
+                logging.info('base_necessary_trials: {}, sig interval: {}'
+                             .format(base_necessary_trials, significant_interval))
+
+                return base_necessary_trials, significant_interval
+            else:
+                logging.info('lhs: {}'.format(lhs))
+                logging.info('rhs: {}'.format(largest_diff))
+
+
+def solve_hash_chall32(port, filename):
+    def base_oracle(h): return url_get(port, filename, binascii.hexlify(h))
+
+    base_necessary_trials, significant_interval = stats(
+        lambda h: base_oracle(h)[1])
+
+    #base_necessary_trials, significant_interval = 2, 0.003
+
+    curr_hash = bytearray([0x00] * HMAC_SIZE)
+
+    for ii in xrange(len(curr_hash)):
+        _new_guess = bytearray(curr_hash)
+        num_trials_necessary = int(ma.ceil(ma.sqrt(ii + 1) * base_necessary_trials))
+        logging.info('num trials {}'.format(num_trials_necessary))
+
+        def oracle(bb):
+            _new_guess[ii] = bb
+            total_time = 0
+            for _ in xrange(num_trials_necessary * (ii + 1)):
+                success, _t = base_oracle(_new_guess)
+                total_time += _t
+            return success, total_time / (num_trials_necessary * (ii + 1))
+
+        curr_hash[ii] = solve_byte(oracle, lambda t: abs(t) > significant_interval)
+        logging.info(repr(binascii.hexlify(curr_hash[:ii+1])))
+
+    return curr_hash
+
+
 class TestData:
     actual_signature = (
         '9198ac704afb4c460fb532da453b7a63362d2b5a'
@@ -109,7 +192,7 @@ def solve31():
     solved_hmac = solve_hash_chall31(PORT, TestData.fname)
     assert url_get(PORT, TestData.fname, binascii.hexlify(solved_hmac))[0]
 
-    
+
 def test_failure():
     import nose.tools
     set_sleep_time(PORT, 0.005)
@@ -118,10 +201,17 @@ def test_failure():
                                            PORT, TestData.fname)
 
 
+def solve32():
+    set_sleep_time(PORT, 0.005)
+    solved_hmac = solve_hash_chall32(PORT, TestData.fname)
+    assert url_get(PORT, TestData.fname, binascii.hexlify(solved_hmac))[0]
+
+
 if __name__ == '__main__':
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
 
     test_significantly_long()
-    test_failure()
-    solve31()
+    #test_failure()
+    #solve31()
+    solve32()
