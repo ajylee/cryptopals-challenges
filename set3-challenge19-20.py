@@ -133,7 +133,7 @@ def solve19():
 
     ciphertexts = []
 
-    with open('19.txt', 'r') as fil:
+    with open('challenge-data/19.txt', 'r') as fil:
         for line in fil.readlines():
             ciphertexts.append(cipher.encrypt(base64.b64decode(line)))
 
