@@ -49,9 +49,8 @@ def solve_byte(port, filename, orig_guess, offset):
     t0 = None
 
     for bb in xrange(0x0100):
-
         new_guess[offset] = bb
-        _, t1 = url_get(port, filename, binascii.hexlify(new_guess))
+        success, t1 = url_get(port, filename, binascii.hexlify(new_guess))
 
         if t0 is None:
             t0 = t1
@@ -61,6 +60,8 @@ def solve_byte(port, filename, orig_guess, offset):
                 return new_guess
             else:
                 return orig_guess
+        elif success:
+            return new_guess
         else:
             continue
     else:
