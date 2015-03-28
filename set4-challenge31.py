@@ -1,19 +1,10 @@
 # must start hmac-server.rb first
 
 import time
-import contextlib
-import socket
 import urllib2
 import binascii
 import logging
 
-@contextlib.contextmanager
-def connect(sock, arg):
-    sock.connect(sock, arg)
-    yield
-    sock.close()
-
-#s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 PORT = 9567
 
