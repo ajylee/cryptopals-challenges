@@ -107,9 +107,18 @@ def solve31():
     solved_hmac = solve_hash(PORT, TestData.fname)
     assert url_get(PORT, TestData.fname, binascii.hexlify(solved_hmac))[0]
 
+    
+def test_failure():
+    import nose.tools
+    set_sleep_time(PORT, 0.005)
+    solved_hmac = nose.tools.assert_raises(ValueError,
+                                           solve_hash, PORT, TestData.fname)
+
 
 if __name__ == '__main__':
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
 
-    solve31()
+    test_significantly_long()
+    #solve31()
+    test_failure()
