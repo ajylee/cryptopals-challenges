@@ -62,6 +62,14 @@ def sleepy_cmp(s1, s2)
   return true
 end
 
+get '/set_sleep_time' do
+  if params[:sleep_time]
+    logger.info("set sleep_time to #{params[:sleep_time].to_f}")
+    settings.sleep_time = params[:sleep_time].to_f
+  else
+    return 500
+  end
+end
 
 get '/test' do
   file, signature = params[:file], params[:signature]

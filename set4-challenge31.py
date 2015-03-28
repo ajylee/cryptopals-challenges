@@ -11,6 +11,15 @@ PORT = 9567
 HMAC_SIZE = 20
 
 
+def set_sleep_time(port, sleep_time):
+    template = ('http://localhost:{port}/set_sleep_time?'
+                'sleep_time={sleep_time}')
+
+    urllib2.urlopen(template.format(port=port,
+                                    sleep_time=sleep_time))
+
+
+
 def mk_url(port, filename, signature):
     template = ('http://localhost:{port}/test?'
                 'file={filename}&signature={signature}')
@@ -78,6 +87,8 @@ if __name__ == '__main__':
     #    b'\xfe\xa8\x1d;`6\x1f\xb8\xda\xb5\x97b\xec\xb1\xe1\xa8\x175>\x8c')
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
+
+    set_sleep_time(PORT, 0.050)
 
     signature = (
         '9198ac704afb4c460fb532da453b7a63362d2b5a'
