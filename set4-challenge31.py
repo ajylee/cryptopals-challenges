@@ -90,4 +90,4 @@ if __name__ == '__main__':
     assert significantly_long(t2-t1)
 
     solved_hmac = solve_hash(PORT, fname)
-    assert url_get(PORT, fname, solved_hmac)[0]
+    assert url_get(PORT, fname, binascii.hexlify(solved_hmac))[0]
