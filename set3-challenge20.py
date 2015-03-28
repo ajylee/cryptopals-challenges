@@ -195,6 +195,11 @@ def solve20():
         logging.info('{:>2}: {}'.format(no, strxor(text, solved_keystream)))
 
 
+def test_solutions():
+    solve19()
+    solve20()
+
+
 if __name__ == '__main__':
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
