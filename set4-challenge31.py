@@ -82,27 +82,34 @@ def solve_hash(port, filename):
     return curr_hash
 
 
-if __name__ == '__main__':
-    #signature = bytearray(
-    #    b'\xfe\xa8\x1d;`6\x1f\xb8\xda\xb5\x97b\xec\xb1\xe1\xa8\x175>\x8c')
-    logging.basicConfig()
-    logging.getLogger().setLevel(logging.INFO)
-
-    set_sleep_time(PORT, 0.050)
-
-    signature = (
+class TestData:
+    actual_signature = (
         '9198ac704afb4c460fb532da453b7a63362d2b5a'
     )
 
-    s1 = '0000000000000000000000000000000000000000'
-    s2 = '9100000000000000000000000000000000000000'
+    s0 = '0000000000000000000000000000000000000000'
+    s1 = '9100000000000000000000000000000000000000'
 
     fname = 'challenge-data/20.txt'
 
-    _, t1 = url_get(PORT, fname, s1)
-    _, t2 = url_get(PORT, fname, s2)
 
-    assert significantly_long(t2-t1)
+def test_significantly_long():
+    set_sleep_time(PORT, 0.050)
 
-    solved_hmac = solve_hash(PORT, fname)
-    assert url_get(PORT, fname, binascii.hexlify(solved_hmac))[0]
+    _, t0 = url_get(PORT, TestData.fname, TestData.s0)
+    _, t1 = url_get(PORT, TestData.fname, TestData.s1)
+
+    assert significantly_long(t1-t0)
+
+
+def solve31():
+    set_sleep_time(PORT, 0.050)
+    solved_hmac = solve_hash(PORT, TestData.fname)
+    assert url_get(PORT, TestData.fname, binascii.hexlify(solved_hmac))[0]
+
+
+if __name__ == '__main__':
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.INFO)
+
+    solve31()
