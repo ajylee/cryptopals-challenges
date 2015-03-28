@@ -7,16 +7,11 @@ from hash_more import (SHA1, sha1_compress, make_md_hash_64, big_endian_bytes,
                        md_pad_64, big_endian_words, little_endian_words)
 import hash_more
 import hash_auth
-
-_length_to_bytes = lambda length: big_endian_bytes([length], 8)
-
-
-def glue_padding(message_length):
-    return hash_auth.glue_padding(message_length, _length_to_bytes)
+from hash_auth import glue_padding
 
 
-def _hash_to_state(sha1_hash_str):
-    return list(big_endian_words(bytearray(sha1_hash_str), 4))
+def _hash_to_state(hash_str):
+    return list(big_endian_words(bytearray(hash_str), 4))
 
 
 def gen_MAC(md_hash_algo, orig_MAC, total_byte_len, added_message):
@@ -25,11 +20,12 @@ def gen_MAC(md_hash_algo, orig_MAC, total_byte_len, added_message):
                                   state=_hash_to_state(orig_MAC)))
 
 def gen_MAC_and_message_candidates(
-        md_hash_algo,
+        md_hash_algo, length_to_bytes,
         guessed_key_len, orig_MAC, orig_message, added_message):
 
     new_message_candidate = (orig_message
-                             + glue_padding(guessed_key_len + len(orig_message))
+                             + glue_padding(guessed_key_len + len(orig_message),
+                                            length_to_bytes)
                              + added_message)
 
     total_byte_len = guessed_key_len + len(new_message_candidate)
@@ -39,11 +35,13 @@ def gen_MAC_and_message_candidates(
     return new_MAC_candidate, new_message_candidate
 
 
-def gen_MAC_and_message(md_hash_algo, auth, orig_MAC, orig_message, added_message):
+def gen_MAC_and_message(md_hash_algo, length_to_bytes,
+                        auth, orig_MAC, orig_message, added_message):
     for guessed_key_len in xrange(100):
         new_MAC_candidate, new_message_candidate =(
             gen_MAC_and_message_candidates(
-                md_hash_algo, guessed_key_len, orig_MAC, orig_message, added_message))
+                md_hash_algo, length_to_bytes,
+                guessed_key_len, orig_MAC, orig_message, added_message))
 
         if auth.authentic(new_MAC_candidate, new_message_candidate):
             return new_MAC_candidate, new_message_candidate
@@ -51,7 +49,7 @@ def gen_MAC_and_message(md_hash_algo, auth, orig_MAC, orig_message, added_messag
         raise ValueError, "failed generate valid message"
 
 
-def test_break_SHA1_keyed_MAC(md_hash_algo=SHA1):
+def break_keyed_MAC(md_hash_algo, length_to_bytes):
 
     random_io = Crypto.Random.new()
 
@@ -68,11 +66,22 @@ def test_break_SHA1_keyed_MAC(md_hash_algo=SHA1):
     added_message = ";admin=true"
 
     fake_MAC, tampered_message = gen_MAC_and_message(
-        md_hash_algo, auth, real_MAC, message, added_message)
+        md_hash_algo, length_to_bytes, auth, real_MAC, message, added_message)
 
     assert tampered_message.endswith(added_message)
     assert auth.authentic(fake_MAC, tampered_message)
 
 
+def test_break_SHA1_keyed_MAC():
+    break_keyed_MAC(hash_more.SHA1,
+                    lambda length: hash_more.big_endian_bytes([length], 8))
+
+
+def test_break_MD4_keyed_MAC():
+    break_keyed_MAC(hash_more.MD4,
+                    lambda length: hash_more.little_endian_bytes([length], 8))
+
+
 if __name__ == '__main__':
     test_break_SHA1_keyed_MAC()
+    test_break_MD4_keyed_MAC()
