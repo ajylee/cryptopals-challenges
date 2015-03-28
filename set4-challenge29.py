@@ -10,31 +10,9 @@ import hash_auth
 _length_to_bytes = lambda length: big_endian_bytes([length], 8)
 
 
-# Debug tools
-# ------------
-
-def check_hash(message, state):
-    """tool for debugging"""
-    for i in range(0, len(message), 64):
-        state = sha1_compress(message[i:i+64], state)
-    return _state_to_hash(state)
-
-
-def _state_to_hash(state):
-    _bytes = big_endian_bytes(state, 4)
-    return ''.join(chr(byte) for byte in _bytes)
-
-
 def _hash_to_state(sha1_hash_str):
     return list(big_endian_words(bytearray(sha1_hash_str), 4))
 
-
-def _add_glue_padding(message):
-     return message + glue_padding(len(message))
-
-
-# Code proper
-# ------------
 
 def glue_padding(message_length):
     bit_len = message_length * 8
