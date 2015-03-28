@@ -27,6 +27,7 @@ def mk_url(port, filename, signature):
                            filename=filename,
                            signature=signature)
 
+
 def significantly_long(interval):
     return abs(interval) > .030
 
@@ -36,9 +37,11 @@ def url_get(port, filename, signature):
 
     try:
         return_code = urllib2.urlopen(mk_url(port, filename, signature))
-        return True, None
+        success = True
     except urllib2.HTTPError, data:
-        return False, time.time() - start
+        success = False
+
+    return success, time.time() - start
 
 
 def solve_byte(port, filename, orig_guess, offset):
@@ -92,7 +95,7 @@ if __name__ == '__main__':
     _, t1 = url_get(PORT, fname, s1)
     _, t2 = url_get(PORT, fname, s2)
 
-    print significantly_long(t2-t1)
+    assert significantly_long(t2-t1)
 
     solved_hmac = solve_hash(PORT, fname)
     assert url_get(PORT, fname, solved_hmac)[0]

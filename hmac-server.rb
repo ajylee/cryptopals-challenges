@@ -22,7 +22,7 @@ class String
   end
 
   def unhexlify
-    [self].pack('H*')[0]
+    [self].pack('H*')
   end
 
   def my_unhexlify
@@ -35,6 +35,7 @@ configure do
   #set :key, SecureRandom.random_bytes(BLOCK_SIZE)
   set :key, 'abcd'
   set :port, 9567
+  set :sleep_time, 0.050
 end
 
 
@@ -50,9 +51,9 @@ def my_hmac(key, message)
 end
 
 
-def slow_cmp(s1, s2)
+def sleepy_cmp(s1, s2)
   s1.bytes.zip(s2.bytes).each do |(c1, c2)|
-    sleep(0.050)
+    sleep(settings.sleep_time)
     if c1 != c2
       return false
     end
@@ -65,14 +66,12 @@ end
 get '/test' do
   file, signature = params[:file], params[:signature]
 
-  #logger.info("file: #{file} sig: #{signature}")
-
   digest = OpenSSL::Digest.new('sha1')
   md_hash = OpenSSL::HMAC.hexdigest(digest, settings.key, File.read(file))
 
-  #logger.info("actual digest: #{md_hash}")
+  logger.info("actual digest: #{md_hash}")
 
-  if slow_cmp(md_hash.unhexlify, signature.unhexlify) then
+  if sleepy_cmp(md_hash.unhexlify, signature.unhexlify) then
     return 200
   else
     return 500
