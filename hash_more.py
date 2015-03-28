@@ -66,7 +66,7 @@ def md_pad_64(message, length_to_bytes, fake_byte_len=None):
     message += b'\x80'
     message += b'\x00' * ((56 - (original_byte_len + 1) % 64) % 64)
     original_bit_len = (fake_byte_len if fake_byte_len else original_byte_len) * 8
-    message += ''.join(chr(byte) for byte in length_to_bytes(original_bit_len))
+    message += bytearray(length_to_bytes(original_bit_len))
     return message
 
 
