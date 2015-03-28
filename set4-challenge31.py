@@ -28,7 +28,9 @@ def mk_url(port, filename, signature):
                            signature=signature)
 
 
-def significantly_long(interval):
+def significantly_long_chall31(interval):
+    # Whether time interval is significantly long for
+    # challenge 31. Fails for 32 (as desired).
     return abs(interval) > .030
 
 
@@ -44,7 +46,7 @@ def url_get(port, filename, signature):
     return success, time.time() - start
 
 
-def solve_byte(oracle):
+def solve_byte(oracle, significantly_long):
     t0 = None
     prev_byte = None
 
@@ -66,7 +68,7 @@ def solve_byte(oracle):
         raise ValueError, 'no differences in guesses found'
 
 
-def solve_hash(port, filename):
+def solve_hash_chall31(port, filename):
     curr_hash = bytearray(HMAC_SIZE * [0])
 
     for ii in xrange(len(curr_hash)):
@@ -76,7 +78,7 @@ def solve_hash(port, filename):
             _new_guess[ii] = bb
             return url_get(port, filename, binascii.hexlify(_new_guess))
 
-        curr_hash[ii] = solve_byte(oracle)
+        curr_hash[ii] = solve_byte(oracle, significantly_long_chall31)
         logging.info(repr(binascii.hexlify(curr_hash)))
 
     return curr_hash
@@ -99,12 +101,12 @@ def test_significantly_long():
     _, t0 = url_get(PORT, TestData.fname, TestData.s0)
     _, t1 = url_get(PORT, TestData.fname, TestData.s1)
 
-    assert significantly_long(t1-t0)
+    assert significantly_long_chall31(t1-t0)
 
 
 def solve31():
     set_sleep_time(PORT, 0.050)
-    solved_hmac = solve_hash(PORT, TestData.fname)
+    solved_hmac = solve_hash_chall31(PORT, TestData.fname)
     assert url_get(PORT, TestData.fname, binascii.hexlify(solved_hmac))[0]
 
     
@@ -112,7 +114,8 @@ def test_failure():
     import nose.tools
     set_sleep_time(PORT, 0.005)
     solved_hmac = nose.tools.assert_raises(ValueError,
-                                           solve_hash, PORT, TestData.fname)
+                                           solve_hash_chall31,
+                                           PORT, TestData.fname)
 
 
 if __name__ == '__main__':
@@ -120,5 +123,5 @@ if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
 
     test_significantly_long()
-    #solve31()
     test_failure()
+    solve31()
