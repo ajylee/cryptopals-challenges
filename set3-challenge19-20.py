@@ -166,7 +166,7 @@ def solve20():
 
     ciphertexts = []
 
-    with open('20.txt', 'r') as fil:
+    with open('challenge-data/20.txt', 'r') as fil:
         for line in fil.readlines():
             ciphertexts.append(cipher.encrypt(base64.b64decode(line)))
 

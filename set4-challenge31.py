@@ -97,7 +97,7 @@ if __name__ == '__main__':
     s1 = '0000000000000000000000000000000000000000'
     s2 = '9100000000000000000000000000000000000000'
 
-    fname = '20.txt'
+    fname = 'challenge-data/20.txt'
 
     _, t1 = url_get(PORT, fname, s1)
     _, t2 = url_get(PORT, fname, s2)
