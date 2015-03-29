@@ -1,24 +1,60 @@
+import binascii
+import os
 
-import binascii 
-
-def modexp(b, p, m):
-    """(b ** p) % m for bignum b"""
-
-    return 
+DEBUG = False
 
 
-def easy_diffie_hellman():
-    return diffie_hellman(p=37, g=5)
+def byte_count(n):
+    count = 0
+    while n:
+        n >>= 8
+        count += 1
+    return count
 
 
-def diffie_hellman(p, g):
-    a = random() % p
+def modexp(g, u, p):
+    """computes s = (g ^ u) mod p
+    args are base, exponent, modulus
+    (see Bruce Schneier's book, _Applied Cryptography_ p. 244)"""
+    s = 1
+    while u != 0:
+        if u & 1:
+            s = (s * g)%p
+        u >>= 1
+        g = (g * g)%p;
+    return s
+
+
+def mod_random(p):
+    return long(binascii.hexlify(os.urandom(byte_count(p))), 16) % p
+
+
+def simple_diffie_hellman(p, g):
+    a = mod_random(p)
+    b = mod_random(p)
     A = (g ** a) % p
     B = (g ** b) % p
     s = (B ** a) % p
     assert s == (A ** b) % p
+    return s
+
+
+def diffie_hellman(p, g):
+    a = mod_random(p)
+    b = mod_random(p)
+    A = modexp(g, a, p)
+    B = modexp(g, b, p)
+    s = modexp(B, a, p)
+
+    if DEBUG:
+        assert s == modexp(A, b, p)
 
     return s
+
+
+def easy_diffie_hellman():
+    return simple_diffie_hellman(p=37, g=5)
+
 
 def nist_diffie_hellman():
     p = '''ffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd129024
@@ -28,8 +64,22 @@ def nist_diffie_hellman():
     24117c4b1fe649286651ece45b3dc2007cb8a163bf0598da48361
     c55d39a69163fa8fd24cf5f83655d23dca3ad961c62f356208552
     bb9ed529077096966d670c354e4abc9804f1746c08ca237327fff
-    fffffffffffff'''.translate(bytearray(256), ' ')
+    fffffffffffff'''.translate(bytearray(xrange(256)), ' \n')
 
-    return diffie_hellman(p=binascii.unhexlify(p), g=2)
+    return diffie_hellman(p=long(p, 16), g=2)
 
-    
+
+if __name__ == '__main__':
+    DEBUG = True
+    easy_diffie_hellman()
+    nist_diffie_hellman()
+
+    count = 0
+
+    # Dangerous! 'Monkey patching' mod_random
+    def mod_random(p):
+        global count
+        count += 1 % 2
+        return (16 if count % 2 else 20)
+
+    assert diffie_hellman(37, 5) == simple_diffie_hellman(37, 5)
