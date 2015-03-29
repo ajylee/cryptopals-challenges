@@ -1,5 +1,7 @@
 import binascii
 import os
+from num_tools import modexp, byte_count
+
 
 DEBUG = False
 
@@ -14,27 +16,6 @@ bb9ed529077096966d670c354e4abc9804f1746c08ca237327fff
 fffffffffffff'''.translate(bytearray(xrange(256)), ' \n')
 
 NIST_G = 2
-
-
-def byte_count(n):
-    count = 0
-    while n:
-        n >>= 8
-        count += 1
-    return count
-
-
-def modexp(g, u, p):
-    """computes s = (g ^ u) mod p
-    args are base, exponent, modulus
-    (see Bruce Schneier's book, _Applied Cryptography_ p. 244)"""
-    s = 1
-    while u != 0:
-        if u & 1:
-            s = (s * g)%p
-        u >>= 1
-        g = (g * g)%p;
-    return s
 
 
 def mod_random(p):
@@ -73,7 +54,7 @@ def nist_diffie_hellman():
     g = NIST_G
     return diffie_hellman(p=long(p, 16), g=g)
 
-
+    
 if __name__ == '__main__':
     DEBUG = True
     easy_diffie_hellman()
