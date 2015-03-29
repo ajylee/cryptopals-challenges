@@ -49,6 +49,13 @@ def chunks(ss, size, num_chunks=None):
 
 
 class CBC(object):
+    """NOTE: encryption includes padding, decryption does not strip padding.
+
+    This is a design choice because must pad before encrypting messages, but
+    we might not get a correctly padded message upon decryption.
+
+    """
+
     def __init__(self, key, iv, encipher_iv=False):
         self._ecb_cipher = AES.new(key, AES.MODE_ECB)
         self.block_size = len(key)
