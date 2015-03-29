@@ -53,19 +53,3 @@ def nist_diffie_hellman():
     p = NIST_P_HEX
     g = NIST_G
     return diffie_hellman(p=long(p, 16), g=g)
-
-    
-if __name__ == '__main__':
-    DEBUG = True
-    easy_diffie_hellman()
-    nist_diffie_hellman()
-
-    count = 0
-
-    # Dangerous! 'Monkey patching' mod_random
-    def mod_random(p):
-        global count
-        count += 1 % 2
-        return (16 if count % 2 else 20)
-
-    assert diffie_hellman(37, 5) == simple_diffie_hellman(37, 5)
