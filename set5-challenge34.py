@@ -13,28 +13,8 @@ BLOCK_SIZE = 16  # AES block size
 Message = namedtuple('Message', ['sender', 'body'])
 
 
-class Communicator(object):
-    def __init__(self, name):
-        self.inbox = []  # list of messages
-        self.name = name
-
-    def __repr__(self):
-        return 'Communicator {}'.format(self.name)
-
-    def send(self, other, body):
-        message = Message(sender=self, body=body)
-        other.inbox.append(message)
-
-    def read_message(self):
-        if self.inbox:
-            return self.inbox.pop(0)
-
-
-class Contacts:
-    alice = 'Alice'
-    bob = 'Bob'
-    mallory = 'Mallory'
-
+# Crypto
+# -------
 
 def s_to_key(s):
     return str(bytearray(
@@ -53,139 +33,208 @@ def decrypt_secret_message(s, ciphertext_iv):
     return CBC(key, iv).decrypt(ciphertext)
 
 
-def protocol_A(secret_message):
-    """Message Protocol from A point of view"""
-    me = Contacts.alice
+# Communications
+# ---------------
 
-    other = yield
-    logging.info('{} connected to {}'.format(me, other))
+class Communicator(object):
+    def __init__(self):
+        self.inbox = []
+        self.listener = None
 
-    yield # wait for others to get set up
+    def __repr__(self):
+        return self.name
 
-    p, g = (long(dh.NIST_P_HEX, 16), dh.NIST_G, )
-    a = dh.mod_random(p)
-    A = nt.modexp(g, a, p)
-    m0 = Message(me, (p, g, A))
+    def receive_secret_message(self, mesg):
+        logging.info('{} received <secret message> from {}'.format(self, mesg.sender))
+        self.inbox.append(mesg)
 
-    m1 = other.send(m0)
-    logging.info('{} received B from {}'.format(me, m1.sender))
+    def create_secret_message(self, plaintext):
+        return Message(self, encrypt_secret_message(self.s, plaintext))
 
-    B = m1.body
-    s = nt.modexp(B, a, p)
-    m2 = Message(me, encrypt_secret_message(s, secret_message))
+    def read_next_secret_message(self):
+        mesg = self.inbox.pop(0)
+        return self.read_secret_message(mesg)
 
-    m3 = other.send(m2)
-    logging.info('{} received <secret message> from {}'.format(me, m3.sender))
+    def read_secret_message(self, mesg):
+        return strip_PKCS7_padding(decrypt_secret_message(
+            self.s,
+            mesg.body))
 
-    assert strip_PKCS7_padding(decrypt_secret_message(s, m3.body)) \
-        == secret_message
-
-    yield
-
-
-def protocol_B():
-    me = Contacts.bob
-
-    other = yield
-    logging.info('{} connected to {}'.format(me, other))
-
-    m0 = yield
-    logging.info('{} received (p, g, A) from {}'.format(me, m0.sender))
-
-    p, g, A = m0.body
-    b = dh.mod_random(p)
-    B = dh.modexp(g, b, p)
-    m1 = Message(me, B)
-
-    m2 = yield m1
-    logging.info('{} received <secret message> from {}'.format(me, m2.sender))
-
-    s = nt.modexp(A, b, p)
-
-    secret_message = strip_PKCS7_padding(decrypt_secret_message(s, m2.body))
-    m3 = Message(me, encrypt_secret_message(s, secret_message))
-
-    yield m3
+    def send_secret_message(self, plaintext):
+        secret_message = self.create_secret_message(plaintext)
+        self.listener.receive_secret_message(secret_message)
 
 
-def protocol_MITM():
-    me = Contacts.mallory
+class Alice(Communicator):
+    name = 'Alice'
 
-    alice, bob = yield
-    logging.info('{} connected to {} and {}'.format(me, alice, bob))
+    def __init__(self):
+        self.p, self.g = long(dh.NIST_P_HEX, 16), dh.NIST_G
+        self.a = dh.mod_random(self.p)
+        self.A = nt.modexp(self.g, self.a, self.p)
+        self.B = None
+        Communicator.__init__(self)
 
-    m0 = yield  # from alice
-    logging.info('{} received (p, g, A) from {}'.format(me, m0.sender))
+    def _message_pgA(self):
+        return Message(self, (self.p, self.g, self.A))
 
-    p, g, A = m0.body
-    # send (p, g, p) to Bob (expects (p, g, A))
-    fake_m0 = Message('Fake ' + m0.sender, (p, g, p))
-
-    m1 = bob.send(fake_m0)
-    logging.info('{} received B from {}'.format(me, m1.sender))
-
-    # send p to Alice (expects B)
-    m2 = yield Message('Fake ' + m1.sender, p)
-    logging.info('{} received <secret message> from {}'.format(me, m2.sender))
-
-    m3 = bob.send(m2._replace(sender='Fake ' + m2.sender))
-    logging.info('{} received <secret message> from {}'.format(me, m3.sender))
-
-    yield m3._replace(sender='Fake ' + m3.sender) # to alice
-
-    s = 0
-    logging.info('{} decrypting <secret message>'.format(me))
-    yield strip_PKCS7_padding(decrypt_secret_message(s, m3.body))
+    def _receive_B(self, mesg):
+        logging.info('{} received B from {}'.format(self, mesg.sender))
+        self.B = mesg.body
+        self.s = nt.modexp(self.B, self.a, self.p)
 
 
-def execute_direct_connection():
-    secret_message = 'secret message'
+    # public interface
 
-    # initialize generators
-    alice = protocol_A(secret_message)
-    bob = protocol_B()
-    alice.next()
-    bob.next()
+    def connect(self, other):
+        logging.info('{} connected to {}'.format(self, other))
+        self.listener = other
 
-    # initialize connection
-    alice.send(bob)
-    bob.send(alice)
-
-    # communicate
-    alice.next()
+    def conduct_handshake(self):
+        logging.info('{} initiating handshake with {}'.format(self, self.listener))
+        response = self.listener.respond_handshake(self._message_pgA())
+        self._receive_B(response)
 
 
-def execute_mitm_connection():
+
+class Bob(Communicator):
+    name = 'Bob'
+
+    def __init__(self):
+        self.p, self.g = None, None
+        self.A = None
+        self.B = None
+        self.b = None
+        Communicator.__init__(self)
+
+    def _receive_pgA(self, mesg):
+        logging.info('{} received (p, g, A) from {}'.format(self, mesg.sender))
+        self.p, self.g, self.A = mesg.body
+        self.b = dh.mod_random(self.p)
+        self.B = dh.modexp(self.g, self.b, self.p)
+        self.s = nt.modexp(self.A, self.b, self.p)
+
+    def _message_B(self):
+        return Message(self, self.B)
+
+
+    # public interface
+
+    def connect(self, other):
+        logging.info('{} connected to {}'.format(self, other))
+        self.listener = other
+
+    def respond_handshake(self, mesg):
+        # handshake response
+        self._receive_pgA(mesg)
+        return self._message_B()
+
+
+class Mallory(Communicator):
+    name = 'Mallory'
+
+    def __init__(self):
+        self.p, self.g = None, None
+        self.A = None
+        self.B = None
+        self.s = 0
+        self.alice, self.bob = None, None
+        self.snooped_messages = []
+        Communicator.__init__(self)
+
+    def _receive_pgA(self, mesg):
+        logging.info('{} received (p, g, A) from {}'.format(self, mesg.sender))
+        self.p, self.g, _A = mesg.body
+
+    def _receive_B(self, mesg):
+        logging.info('{} received B from {}'.format(self, mesg.sender))
+
+    def _message_pgp_as_pgA(self):
+        # send (p, g, p) to Bob (expects (p, g, A))
+        return Message(self, (self.p, self.g, self.p))
+
+    def _message_p_as_B(self):
+        # send p to Alice (expects B)
+        return Message(self, self.p)
+
+    def _fake_handshake(self, target):
+        response = target.respond_handshake(self._message_pgp_as_pgA())
+        self._receive_B(response)
+
+
+    # public interface
+
+    def connect(self, alice, bob):
+        logging.info('{} connected to {} and {}'.format(self, alice, bob))
+        self.alice, self.bob = alice, bob
+
+    def respond_handshake(self, mesg):
+        # handshake response
+        self._receive_pgA(mesg)
+        bob_response = self._fake_handshake(self.bob)
+        return self._message_p_as_B()
+
+    def read_and_relay_secret_message(self):
+        mesg = self.inbox.pop(0)
+        logging.info('{} reading <secret message> from {}'.format(self, mesg.sender))
+        self.snooped_messages.append(self.read_secret_message(mesg))
+        if mesg.sender == self.bob:
+            receiver = self.alice
+        else:
+            receiver = self.bob
+        receiver.receive_secret_message(mesg)
+
+
+def conduct_direct_conversation():
+    secret_text = 'secret message'
+
+    alice = Alice()
+    bob = Bob()
+    alice.connect(bob)
+    bob.connect(alice)
+
+    alice.conduct_handshake()
+
+    alice.send_secret_message(secret_text)
+
+    bob.send_secret_message(bob.read_next_secret_message())
+
+    assert alice.read_next_secret_message() == secret_text
+
+
+def conduct_mitm_conversation():
     logging.info('')
     logging.info('*' * 50)
     logging.info('Begin MITM connection')
     logging.info('-' * 23)
 
-    secret_message = 'secret message'
+    secret_text = 'secret message'
 
-    # initialize generators
-    alice = protocol_A(secret_message)
-    bob = protocol_B()
-    mallory = protocol_MITM()
+    alice = Alice()
+    mallory = Mallory()
+    bob = Bob()
 
-    alice.next()
-    bob.next()
-    mallory.next()
+    alice.connect(mallory)
+    mallory.connect(alice, bob)
+    bob.connect(mallory)
 
-    # initialize connection
-    alice.send(mallory)
-    bob.send(mallory)
-    mallory.send((alice, bob))
+    alice.conduct_handshake()
+    alice.send_secret_message(secret_text)
 
-    # communicate
-    alice.next()
+    mallory.read_and_relay_secret_message()
+
+    bob.send_secret_message(bob.read_next_secret_message())
+
+    mallory.read_and_relay_secret_message()
+
+    alice.read_next_secret_message()
 
     # verify secret message
-    assert mallory.next() == secret_message
+    assert mallory.snooped_messages[0] == secret_text
 
 
 if __name__ == '__main__':
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
-    execute_direct_connection()
-    execute_mitm_connection()
+    conduct_direct_conversation()
+    conduct_mitm_conversation()
