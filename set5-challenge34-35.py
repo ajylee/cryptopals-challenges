@@ -248,6 +248,8 @@ class Mallory35(Mallory):
     def __init__(self, (bob_g_from_p, s_possibilities)):
         self.bob_g_from_p = bob_g_from_p
         self.s_possibilities = s_possibilities
+        self.alice_s = None
+        self.bob_s = None
         Mallory.__init__(self)
 
     def _receive_pg(self, mesg):
@@ -258,6 +260,10 @@ class Mallory35(Mallory):
 
     def _receive_A(self, mesg):
         logging.info('{} received A from {}'.format(self, mesg.sender))
+
+    def _receive_B(self, mesg):
+        logging.info('{} received B from {}'.format(self, mesg.sender))
+        self.bob_s = mesg.body
 
     def respond_negotiated_handshake(self):
         bob_response_delegate = self.bob.respond_negotiated_handshake()
@@ -281,22 +287,30 @@ class Mallory35(Mallory):
         mesg = self.inbox.pop(0)
         logging.info('{} reading <secret message> from {}'.format(self, mesg.sender))
 
-        possible_plaintexts = []
-        for maybe_s in self.s_possibilities:
-            try:
-                possible_plaintexts.append(read_secret_message(maybe_s % self.p, mesg))
-            except InvalidPadding:
-                continue
-
-        assert possible_plaintexts
-        self.snooped_messages.append(possible_plaintexts)
+        if self.alice_s is None and mesg.sender == self.alice:
+            possible_plaintexts = []
+            for maybe_s in self.s_possibilities:
+                try:
+                    possible_plaintexts.append(read_secret_message(maybe_s % self.p, mesg))
+                    self.alice_s = maybe_s % self.p
+                except InvalidPadding:
+                    continue
+            self.snooped_messages.append(possible_plaintexts)
+        elif mesg.sender == self.alice:
+            self.snooped_messages.append([read_secret_message(self.alice_s, mesg)])
+        else:
+            self.snooped_messages.append([read_secret_message(self.bob_s, mesg)])
 
         if mesg.sender == self.bob:
+            translated = encrypt_secret_message(
+                self.alice_s, read_secret_message(self.bob_s, mesg))
             receiver = self.alice
         else:
+            translated = encrypt_secret_message(
+                self.bob_s, read_secret_message(self.alice_s, mesg))
             receiver = self.bob
 
-        receiver.receive_secret_message(mesg)
+        receiver.receive_secret_message(Message(self, body=translated))
 
 
 def conduct_direct_conversation():
@@ -404,18 +418,12 @@ def conduct_mitm_negotiated_conversation(bob_g_and_s):
         bob.send_secret_message(bob.read_next_secret_message())
         mallory.read_and_relay_secret_message()
         alice.read_next_secret_message()
-    except InvalidPadding:
-        # bob or alice will may not be able to communicate
-        # when bob_g = -1
-        # 
-        # A more sophisticated implementation of Mallory35 could translate
-        # ciphertexts to cover her tracks. Note that Mallory can obtain alice_s
-        # from analyzing Alice's ciphertexts, and bob_s == B (since Mallory sets
-        # bob_A == bob_g)
+    except UndecidableException:
+        # bob or alice will not be able to communicate
+        # if Mallory cannot decide what Alice's key (s) is.
 
-        logging.info('Bob and Alice could not communicate (flipped sign of s)')
+        logging.info('Bob and Alice could not communicate')
         raise UndecidableException
-
 
 
 if __name__ == '__main__':
