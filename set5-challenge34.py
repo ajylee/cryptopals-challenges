@@ -92,9 +92,12 @@ class Alice(Communicator):
 
     def conduct_handshake(self):
         logging.info('{} initiating handshake with {}'.format(self, self.listener))
-        response = self.listener.respond_handshake(self._message_pgA())
-        self._receive_B(response)
 
+        response_delegate = self.listener.respond_handshake()
+        response_delegate.next()
+
+        m_B = response_delegate.send(self._message_pgA())
+        self._receive_B(m_B)
 
 
 class Bob(Communicator):
@@ -124,10 +127,11 @@ class Bob(Communicator):
         logging.info('{} connected to {}'.format(self, other))
         self.listener = other
 
-    def respond_handshake(self, mesg):
+    def respond_handshake(self):
         # handshake response
+        mesg = yield
         self._receive_pgA(mesg)
-        return self._message_B()
+        yield self._message_B()
 
 
 class Mallory(Communicator):
@@ -158,8 +162,10 @@ class Mallory(Communicator):
         return Message(self, self.p)
 
     def _fake_handshake(self, target):
-        response = target.respond_handshake(self._message_pgp_as_pgA())
-        self._receive_B(response)
+        response_delegate = target.respond_handshake()
+        response_delegate.next()
+        m_B = response_delegate.send(self._message_pgp_as_pgA())
+        self._receive_B(m_B)
 
 
     # public interface
@@ -168,11 +174,12 @@ class Mallory(Communicator):
         logging.info('{} connected to {} and {}'.format(self, alice, bob))
         self.alice, self.bob = alice, bob
 
-    def respond_handshake(self, mesg):
+    def respond_handshake(self):
         # handshake response
-        self._receive_pgA(mesg)
+        m_pgA = yield
+        self._receive_pgA(m_pgA)
         bob_response = self._fake_handshake(self.bob)
-        return self._message_p_as_B()
+        yield self._message_p_as_B()
 
     def read_and_relay_secret_message(self):
         mesg = self.inbox.pop(0)
