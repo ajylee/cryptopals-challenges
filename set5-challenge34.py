@@ -83,6 +83,11 @@ class Alice(Communicator):
         self.B = mesg.body
         self.s = nt.modexp(self.B, self.a, self.p)
 
+    def _receive_ACK(self, mesg):
+        if not m_ACK.body == 'ACK':
+            raise ValueError, 'did not receive ACK; handshake failed'
+
+        logging.info('{} received ACK from {}'.format(self, mesg.sender))
 
     # public interface
 
@@ -91,12 +96,27 @@ class Alice(Communicator):
         self.listener = other
 
     def conduct_handshake(self):
+        """Handshake protocol from challenge 34"""
         logging.info('{} initiating handshake with {}'.format(self, self.listener))
 
         response_delegate = self.listener.respond_handshake()
         response_delegate.next()
 
         m_B = response_delegate.send(self._message_pgA())
+        self._receive_B(m_B)
+
+    def conduct_negotiated_handshake(self):
+        """Handshake protocol from challenge 35"""
+        logging.info('{} initiating negotiated handshake with {}'
+                     .format(self, self.listener))
+
+        response_delegate = self.listener.respond_negotiated_handshake()
+        response_delegate.next()
+
+        m_ACK = response_delegate.send(Message(self, (self.p, self.g)))
+        self._receive_ACK(m_ACK)
+
+        m_B = response_delegate.send(Message(self, self.A))
         self._receive_B(m_B)
 
 
@@ -120,6 +140,16 @@ class Bob(Communicator):
     def _message_B(self):
         return Message(self, self.B)
 
+    def _receive_pg(self, mesg):
+        logging.info('{} received (p, g) from {}'.format(self, mesg.sender))
+        self.p, self.g, = mesg.body
+        self.b = dh.mod_random(self.p)
+        self.B = dh.modexp(self.g, self.b, self.p)
+
+    def _receive_A(self, mesg):
+        logging.info('{} received A from {}'.format(self, mesg.sender))
+        self.A = mesg.body
+        self.s = nt.modexp(self.A, self.b, self.p)
 
     # public interface
 
@@ -131,6 +161,16 @@ class Bob(Communicator):
         # handshake response
         mesg = yield
         self._receive_pgA(mesg)
+        yield self._message_B()
+
+    def respond_negotiated_handshake(self):
+        # handshake response
+        m_pg = yield
+        self._receive_pg(m_pg)
+
+        m_A = yield Message(self, 'ACK')
+        self._receive_A(m_A)
+
         yield self._message_B()
 
 
@@ -190,6 +230,44 @@ class Mallory(Communicator):
         else:
             receiver = self.bob
         receiver.receive_secret_message(mesg)
+
+
+class Mallory35(Mallory):
+    """Mallory communicator for challenge 35; allows setting fake_g function"""
+    def __init__(self, fake_g):
+        self.fake_g = fake_g
+        Mallory.__init__(self)
+
+    def _receive_pg(self, mesg):
+        logging.info('{} received (p, g) from {}'.format(self, mesg.sender))
+        self.p, self.g, = mesg.body
+
+    def _receive_A(self, mesg):
+        logging.info('{} received A from {}'.format(self, mesg.sender))
+        self.A = mesg.body
+
+    def _receive_B(self, mesg):
+        # OVERRIDE!!!
+        logging.info('{} received B from {}'.format(self, mesg.sender))
+        self.B = mesg.body
+
+    def respond_negotiated_handshake(self):
+        bob_response_delegate = self.bob.respond_negotiated_handshake()
+        bob_response_delegate.next()
+
+        m_pg = yield # from alice
+        self._receive_pg(m_pg)
+
+        m_ACK = bob_response_delegate.send(Message(self, (self.p, fake_g(self.p))))
+
+        m_A = yield Message(self, 'ACK') # from alice
+        self._receive_A(m_A)
+
+        m_B = bob_response_delegate.send(Message(self, self.A))
+        self._receive_B
+
+        yield m_B._update(sender=self)
+
 
 
 def conduct_direct_conversation():
