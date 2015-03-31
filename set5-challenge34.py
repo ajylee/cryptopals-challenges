@@ -6,11 +6,15 @@ import number_theory.diffie_hellman as dh
 import logging
 import hash_more
 import toolz as tz
-from block_crypto import CBC, strip_PKCS7_padding
+from block_crypto import CBC, strip_PKCS7_padding, InvalidPadding
 
 BLOCK_SIZE = 16  # AES block size
 
 Message = namedtuple('Message', ['sender', 'body'])
+
+
+class UndecidableException(Exception):
+    pass
 
 
 # Crypto
@@ -33,6 +37,10 @@ def decrypt_secret_message(s, ciphertext_iv):
     return CBC(key, iv).decrypt(ciphertext)
 
 
+def read_secret_message(s, mesg):
+    return strip_PKCS7_padding(decrypt_secret_message(s, mesg.body))
+
+
 # Communications
 # ---------------
 
@@ -53,12 +61,7 @@ class Communicator(object):
 
     def read_next_secret_message(self):
         mesg = self.inbox.pop(0)
-        return self.read_secret_message(mesg)
-
-    def read_secret_message(self, mesg):
-        return strip_PKCS7_padding(decrypt_secret_message(
-            self.s,
-            mesg.body))
+        return read_secret_message(self.s, mesg)
 
     def send_secret_message(self, plaintext):
         secret_message = self.create_secret_message(plaintext)
@@ -84,7 +87,7 @@ class Alice(Communicator):
         self.s = nt.modexp(self.B, self.a, self.p)
 
     def _receive_ACK(self, mesg):
-        if not m_ACK.body == 'ACK':
+        if not mesg.body == 'ACK':
             raise ValueError, 'did not receive ACK; handshake failed'
 
         logging.info('{} received ACK from {}'.format(self, mesg.sender))
@@ -224,7 +227,7 @@ class Mallory(Communicator):
     def read_and_relay_secret_message(self):
         mesg = self.inbox.pop(0)
         logging.info('{} reading <secret message> from {}'.format(self, mesg.sender))
-        self.snooped_messages.append(self.read_secret_message(mesg))
+        self.snooped_messages.append(read_secret_message(self.s, mesg))
         if mesg.sender == self.bob:
             receiver = self.alice
         else:
@@ -234,22 +237,27 @@ class Mallory(Communicator):
 
 class Mallory35(Mallory):
     """Mallory communicator for challenge 35; allows setting fake_g function"""
-    def __init__(self, fake_g):
-        self.fake_g = fake_g
+
+    bob_g_and_s_options = [
+        (lambda p: 1, [1]),             # =>  B = 1  =>  alice_s = 1, bob_s unkown
+        (lambda p: p, [0]),             # =>  B = 0  =>  alice_s = 0, bob_s unkown
+        (lambda p: p - 1, [-1, 1]),     # =>  B = -1 or 1  =>  s_alice = -1 or 1
+                                   # if bob_A == bob_g, then bob_s = B
+    ]
+    
+    def __init__(self, (bob_g_from_p, s_possibilities)):
+        self.bob_g_from_p = bob_g_from_p
+        self.s_possibilities = s_possibilities
         Mallory.__init__(self)
 
     def _receive_pg(self, mesg):
         logging.info('{} received (p, g) from {}'.format(self, mesg.sender))
-        self.p, self.g, = mesg.body
+        self.p, self.alice_g = mesg.body
+        self.bob_g = self.bob_g_from_p(self.p)
+        self.bob_A = self.bob_g
 
     def _receive_A(self, mesg):
         logging.info('{} received A from {}'.format(self, mesg.sender))
-        self.A = mesg.body
-
-    def _receive_B(self, mesg):
-        # OVERRIDE!!!
-        logging.info('{} received B from {}'.format(self, mesg.sender))
-        self.B = mesg.body
 
     def respond_negotiated_handshake(self):
         bob_response_delegate = self.bob.respond_negotiated_handshake()
@@ -258,19 +266,45 @@ class Mallory35(Mallory):
         m_pg = yield # from alice
         self._receive_pg(m_pg)
 
-        m_ACK = bob_response_delegate.send(Message(self, (self.p, fake_g(self.p))))
+        # send (p, bob_g) to bob
+        m_ACK = bob_response_delegate.send(Message(self, (self.p, self.bob_g)))
 
-        m_A = yield Message(self, 'ACK') # from alice
+        m_A = yield Message(self, 'ACK')
         self._receive_A(m_A)
 
-        m_B = bob_response_delegate.send(Message(self, self.A))
-        self._receive_B
+        m_B = bob_response_delegate.send(Message(self, self.bob_A))
+        self._receive_B(m_B)
 
-        yield m_B._update(sender=self)
+        yield m_B._replace(sender=self)
 
+    def read_and_relay_secret_message(self):
+        mesg = self.inbox.pop(0)
+        logging.info('{} reading <secret message> from {}'.format(self, mesg.sender))
+
+        possible_plaintexts = []
+        for maybe_s in self.s_possibilities:
+            try:
+                possible_plaintexts.append(read_secret_message(maybe_s % self.p, mesg))
+            except InvalidPadding:
+                continue
+
+        assert possible_plaintexts
+        self.snooped_messages.append(possible_plaintexts)
+
+        if mesg.sender == self.bob:
+            receiver = self.alice
+        else:
+            receiver = self.bob
+
+        receiver.receive_secret_message(mesg)
 
 
 def conduct_direct_conversation():
+    logging.info('')
+    logging.info('*' * 50)
+    logging.info('Begin direct connection')
+    logging.info('-' * 23)
+
     secret_text = 'secret message'
 
     alice = Alice()
@@ -318,8 +352,86 @@ def conduct_mitm_conversation():
     assert mallory.snooped_messages[0] == secret_text
 
 
+def conduct_direct_negotiated_conversation():
+    """Use protocol from challenge 35"""
+
+    logging.info('')
+    logging.info('*' * 50)
+    logging.info('Begin direct negotiated connection')
+    logging.info('-' * 23)
+
+    secret_text = 'secret message'
+
+    alice = Alice()
+    bob = Bob()
+    alice.connect(bob)
+    bob.connect(alice)
+
+    alice.conduct_negotiated_handshake()
+
+    alice.send_secret_message(secret_text)
+
+    bob.send_secret_message(bob.read_next_secret_message())
+
+    assert alice.read_next_secret_message() == secret_text
+
+
+def conduct_mitm_negotiated_conversation(bob_g_and_s):
+    logging.info('')
+    logging.info('*' * 50)
+    logging.info('Begin MITM negotiated connection')
+    logging.info('-' * 23)
+
+    secret_text = 'secret message'
+
+    alice = Alice()
+    mallory = Mallory35(bob_g_and_s)
+    bob = Bob()
+
+    alice.connect(mallory)
+    mallory.connect(alice, bob)
+    bob.connect(mallory)
+
+    alice.conduct_negotiated_handshake()
+    alice.send_secret_message(secret_text)
+
+    mallory.read_and_relay_secret_message()
+
+    # verify secret message
+    assert secret_text in mallory.snooped_messages[0]
+
+    try:
+        bob.send_secret_message(bob.read_next_secret_message())
+        mallory.read_and_relay_secret_message()
+        alice.read_next_secret_message()
+    except InvalidPadding:
+        # bob or alice will may not be able to communicate
+        # when bob_g = -1
+        # 
+        # A more sophisticated implementation of Mallory35 could translate
+        # ciphertexts to cover her tracks. Note that Mallory can obtain alice_s
+        # from analyzing Alice's ciphertexts, and bob_s == B (since Mallory sets
+        # bob_A == bob_g)
+
+        logging.info('Bob and Alice could not communicate (flipped sign of s)')
+        raise UndecidableException
+
+
+
 if __name__ == '__main__':
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
+
     conduct_direct_conversation()
     conduct_mitm_conversation()
+
+    conduct_direct_negotiated_conversation()
+
+    conduct_mitm_negotiated_conversation(Mallory35.bob_g_and_s_options[0])
+    conduct_mitm_negotiated_conversation(Mallory35.bob_g_and_s_options[1])
+
+    try:
+        conduct_mitm_negotiated_conversation(Mallory35.bob_g_and_s_options[2])
+    except UndecidableException:
+        pass
+        
