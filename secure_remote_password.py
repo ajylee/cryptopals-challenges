@@ -34,7 +34,7 @@ def int_to_str(nn):
     padded = '0' * (len(hex_rep) % 2) + hex_rep
     return binascii.unhexlify(padded)
 
-def _str_to_int(ss):
+def str_to_int(ss):
     return long(binascii.hexlify(ss), 16)
 
 
@@ -44,12 +44,12 @@ def gen_salt():
 
 def calculate_u(A, B):
     uH = sha256(int_to_str(A + B)).digest()
-    return _str_to_int(uH)
+    return str_to_int(uH)
 
 
 def calculate_x(salt, password):
     xH = sha256(int_to_str(salt) + password).digest()
-    return _str_to_int(xH)
+    return str_to_int(xH)
 
 
 def calculate_K_client(B, k, g, x, a, u, N):
