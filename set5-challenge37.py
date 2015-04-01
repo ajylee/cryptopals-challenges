@@ -59,8 +59,7 @@ def handle_conn(SRP_server, conn):
             break
 
 
-def serve():
-    SRP_server = secure_remote_password.Server()
+def serve(SRP_server):
     with contextlib.closing(socket.socket()) as s:
         s.bind((HOST, PORT))
 
@@ -140,7 +139,7 @@ def conduct_zero_key_handshake(A_factor):
 
 
 def main():
-    threading.Thread(target=serve).start()
+    threading.Thread(target=serve, args=(srp.Server(),)).start()
     threading.Thread(target=conduct_normal_handshake).run()
 
     for A_factor in xrange(4):
