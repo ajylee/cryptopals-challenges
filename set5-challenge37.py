@@ -10,14 +10,11 @@ import pickle
 import logging
 from functools import partial
 from toolz import pipe
-import secure_remote_password
+import secure_remote_password as srp
 from hashlib import sha256
 from hmac import HMAC
 import socket_handshake
 
-srp = secure_remote_password
-
-# Handle SIGINT in main thread
 
 # make a server and client
 
@@ -27,15 +24,15 @@ ADDRESS = (HOST, PORT)
 
 
 def conduct_normal_handshake(address):
-    c = secure_remote_password.Client()
+    c = srp.Client()
     with contextlib.closing(socket_handshake.local_respond_handshake(address)) \
          as response_delegate:
         c.conduct_handshake(response_delegate)
 
 
 def conduct_zero_key_handshake(address, A_factor):
-    dat = secure_remote_password.mk_login_data(srp.CLIENT_LOGIN_DATA.email,
-                                               'wrong password')
+    dat = srp.mk_login_data(srp.CLIENT_LOGIN_DATA.email,
+                            'wrong password')
 
     with contextlib.closing(socket_handshake.local_respond_handshake(address)) \
          as response_delegate:
