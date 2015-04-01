@@ -34,8 +34,7 @@ PORT = 8087
 # Remote
 # =======
 
-def handle_conn(SRP_server, conn):
-    response_delegate = SRP_server.respond_handshake()
+def handle_conn(response_delegate, conn):
     response_delegate.next()
 
     conn.send(pickle.dumps('welcome\n'))
@@ -59,7 +58,7 @@ def handle_conn(SRP_server, conn):
             break
 
 
-def serve(SRP_server):
+def serve(handshake_server):
     with contextlib.closing(socket.socket()) as s:
         s.bind((HOST, PORT))
 
@@ -73,7 +72,7 @@ def serve(SRP_server):
 
             if s in readable:
                 conn, addr = s.accept()
-                handle_conn(SRP_server, conn)
+                handle_conn(handshake_server.respond_handshake(), conn)
 
 
 # Local
