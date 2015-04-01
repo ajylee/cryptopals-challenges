@@ -93,9 +93,9 @@ def local_respond_handshake(address):
 
             if sock in readable:
                 remote_msg = pickle.loads(sock.recv(1024))
-                logger.info('Remote: {}'.format(repr(remote_msg)))
+                logger.debug('Remote: {}'.format(repr(remote_msg)))
 
                 local_msg = yield remote_msg
 
-                logger.info('Local:  {}'.format(repr(local_msg)))
+                logger.debug('Local:  {}'.format(repr(local_msg)))
                 sock.send(pickle.dumps(local_msg))
