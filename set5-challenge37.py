@@ -139,10 +139,7 @@ def conduct_zero_key_handshake(A_factor):
         assert validation_message == 'OK'
 
 
-if __name__ == '__main__':
-    logging.basicConfig()
-    logging.getLogger().setLevel(logging.WARNING)
-
+def main():
     threading.Thread(target=serve).start()
     threading.Thread(target=conduct_normal_handshake).run()
 
@@ -150,4 +147,12 @@ if __name__ == '__main__':
         threading.Thread(target=conduct_zero_key_handshake, args=(A_factor,)).run()
 
     signal_queue.put('exit')
+
+
+if __name__ == '__main__':
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.WARNING)
+
+    main()
+
     # signal.pause()   # keep main thread alive
