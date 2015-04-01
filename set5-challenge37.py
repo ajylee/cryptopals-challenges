@@ -13,115 +13,32 @@ from toolz import pipe
 import secure_remote_password
 from hashlib import sha256
 from hmac import HMAC
+import socket_handshake
 
 srp = secure_remote_password
 
 # Handle SIGINT in main thread
 
-signal_queue = Queue.Queue()
-
-@partial(signal.signal, signal.SIGINT)
-def handle_sigint(signal, frame):
-    signal_queue.put('exit')
-
-
 # make a server and client
 
 HOST = 'localhost'
 PORT = 8087
+ADDRESS = (HOST, PORT)
 
 
-# Remote
-# =======
-
-def handle_conn(response_delegate, conn):
-    response_delegate.next()
-
-    conn.send(pickle.dumps('welcome\n'))
-
-    while 1:
-        if not signal_queue.empty():
-            break
-
-        data = conn.recv(1024)
-
-        if not data:
-            break
-
-        try:
-            pipe(data,
-               pickle.loads,
-               response_delegate.send,
-               pickle.dumps,
-               conn.sendall)
-        except StopIteration:
-            break
-
-
-def serve(handshake_server):
-    with contextlib.closing(socket.socket()) as s:
-        s.bind((HOST, PORT))
-
-        s.listen(10)
-
-        while 1:
-            if not signal_queue.empty():
-                break
-
-            readable, _w, _e = select.select([s], [], [], 0.5)
-
-            if s in readable:
-                conn, addr = s.accept()
-                handle_conn(handshake_server.respond_handshake(), conn)
-
-
-# Local
-# ======
-
-def _create_connection():
-    while True:
-        if not signal_queue.empty():
-            return 1, None
-        try:
-            return 0, socket.create_connection((HOST, PORT))
-        except socket.error, mesg:
-            logging.warning('Client socket error {}: {}. Retrying.'.format(*mesg))
-            time.sleep(0.05)
-
-
-def local_respond_handshake():
-    return_code, bare_sock = _create_connection()
-    if return_code != 0:
-        raise StopIteration
-
-    with contextlib.closing(bare_sock) as sock:
-        while True:
-            if not signal_queue.empty():
-                raise StopIteration
-
-            readable, _w, _e = select.select([sock], [], [], 0.5)
-
-            if sock in readable:
-                remote_msg = pickle.loads(sock.recv(1024))
-                logging.info('Remote: {}'.format(repr(remote_msg)))
-
-                local_msg = yield remote_msg
-
-                logging.info('Local:  {}'.format(repr(local_msg)))
-                sock.send(pickle.dumps(local_msg))
-
-
-def conduct_normal_handshake():
+def conduct_normal_handshake(address):
     c = secure_remote_password.Client()
-    with contextlib.closing(local_respond_handshake()) as response_delegate:
+    with contextlib.closing(socket_handshake.local_respond_handshake(address)) \
+         as response_delegate:
         c.conduct_handshake(response_delegate)
 
 
-def conduct_zero_key_handshake(A_factor):
+def conduct_zero_key_handshake(address, A_factor):
     dat = secure_remote_password.mk_login_data(srp.CLIENT_LOGIN_DATA.email,
                                                'wrong password')
 
-    with contextlib.closing(local_respond_handshake()) as response_delegate:
+    with contextlib.closing(socket_handshake.local_respond_handshake(address)) \
+         as response_delegate:
         response_delegate.next()
         response_delegate.send(dat.email)
 
@@ -138,13 +55,14 @@ def conduct_zero_key_handshake(A_factor):
 
 
 def main():
-    threading.Thread(target=serve, args=(srp.Server(),)).start()
-    threading.Thread(target=conduct_normal_handshake).run()
+    threading.Thread(target=socket_handshake.serve, args=(ADDRESS, srp.Server())).start()
+    threading.Thread(target=conduct_normal_handshake, args=(ADDRESS,)).run()
 
     for A_factor in xrange(4):
-        threading.Thread(target=conduct_zero_key_handshake, args=(A_factor,)).run()
+        threading.Thread(target=conduct_zero_key_handshake,
+                         args=(ADDRESS, A_factor,)).run()
 
-    signal_queue.put('exit')
+    socket_handshake.signal_queue.put('exit')
 
 
 if __name__ == '__main__':
