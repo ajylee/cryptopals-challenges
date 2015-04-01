@@ -81,6 +81,13 @@ def gen_salt_and_v_server(login_data):
     return salt, v
 
 
+def simple_private_public_pair(login_data):
+    dat = login_data
+    priv = dh.mod_random(dat.N)
+    pub = nt.modexp(dat.g, priv, dat.N)
+    return priv, pub
+
+
 class Server(object):
     def __init__(self):
         self.login_data = {CLIENT_LOGIN_DATA.email: CLIENT_LOGIN_DATA}
@@ -131,8 +138,7 @@ class Client(object):
 
         dat = self.my_login_data
 
-        a = dh.mod_random(self.my_login_data.N)
-        A = nt.modexp(dat.g, a, dat.N)
+        a, A = simple_private_public_pair(dat)
 
         salt, B = response_delegate.send(A)
 
