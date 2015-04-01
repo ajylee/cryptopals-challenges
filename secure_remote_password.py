@@ -1,5 +1,4 @@
 from collections import namedtuple
-import uuid
 import binascii
 import random
 from hashlib import sha256 
@@ -14,6 +13,20 @@ LoginData = namedtuple('LoginData', [
 
 SessionData = namedtuple('SessionData', [
     'salt', 'K'])
+
+
+def mk_login_data(email, password):
+    return LoginData(
+        N = long(dh.NIST_P_HEX, 16),
+        g = 2,
+        k = 3,
+        email = email,
+        password = password,)
+
+
+CLIENT_LOGIN_DATA = mk_login_data(email = 'abc@example.org',
+                                  password = 'some_password',)
+
 
 def _int_to_str(nn):
     hex_rep = hex(nn).lstrip('0x').rstrip('L')
@@ -69,7 +82,7 @@ def gen_salt_and_v_server(login_data):
 
 class Server(object):
     def __init__(self):
-        self.login_data = {}
+        self.login_data = {CLIENT_LOGIN_DATA.email: CLIENT_LOGIN_DATA}
         self.session_data = {}
         self._session_count = 0
 
@@ -79,13 +92,12 @@ class Server(object):
         self.session_data[_id] = {}
         return _id
 
-
     def respond_handshake(self):
         session_id = self.new_session()
 
-        client_id = yield
+        email = yield
 
-        dat = self.login_data[client_id]
+        dat = self.login_data[email]
         salt, v = gen_salt_and_v_server(dat)
 
         A = yield 
@@ -108,17 +120,14 @@ class Server(object):
 
 class Client(object):    
     def __init__(self):
-        self.user_id = uuid.uuid3(uuid.uuid4(),  # random number uuid
-                               'normal client')
-
-        self.my_login_data = None
+        self.my_login_data = CLIENT_LOGIN_DATA
         self.handshake_data = None
 
     def conduct_handshake(self, server):
         response_delegate = server.respond_handshake()
         response_delegate.next()
 
-        response_delegate.send(self.user_id)
+        response_delegate.send(self.my_login_data.email)
 
         dat = self.my_login_data
         
@@ -138,35 +147,9 @@ class Client(object):
         assert validation_message == 'OK'
 
 
-def mk_login_data(email, password):
-    return LoginData(
-        N = long(dh.NIST_P_HEX, 16),
-        g = 2,
-        k = 3,
-        email = email,
-        password = password,
-    )
-
-
-CLIENT_LOGIN_DATA = mk_login_data(
-    email = 'abc@example.org',
-    password = 'some_password',
-)
-
-
-
-def signup(server, client, email, password):
-
-    server.login_data[client.user_id] = data 
-    client.my_login_data = data
-    
-
 def test_SRP():
     s = Server()
     c = Client()
-
-    signup(s, c, email, password)
-
     c.conduct_handshake(s)
 
 
