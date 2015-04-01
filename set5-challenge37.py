@@ -1,15 +1,8 @@
 
 import signal
-import socket
 import contextlib
 import threading
-import Queue
-import select
-import time
-import pickle
 import logging
-from functools import partial
-from toolz import pipe
 import secure_remote_password as srp
 from hashlib import sha256
 from hmac import HMAC

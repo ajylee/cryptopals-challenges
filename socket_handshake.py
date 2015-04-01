@@ -1,7 +1,6 @@
 import signal
 import socket
 import contextlib
-import threading
 import Queue
 import select
 import time
@@ -9,11 +8,9 @@ import pickle
 import logging
 from functools import partial
 from toolz import pipe
-import secure_remote_password
-from hashlib import sha256
-from hmac import HMAC
 
-srp = secure_remote_password
+logger = logging.getLogger(__name__)
+
 
 # Handle SIGINT in main thread
 
@@ -78,7 +75,7 @@ def _create_connection(address):
         try:
             return 0, socket.create_connection(address)
         except socket.error, mesg:
-            logging.warning('Client socket error {}: {}. Retrying.'.format(*mesg))
+            logger.warning('Client socket error {}: {}. Retrying.'.format(*mesg))
             time.sleep(0.05)
 
 
@@ -96,9 +93,9 @@ def local_respond_handshake(address):
 
             if sock in readable:
                 remote_msg = pickle.loads(sock.recv(1024))
-                logging.info('Remote: {}'.format(repr(remote_msg)))
+                logger.info('Remote: {}'.format(repr(remote_msg)))
 
                 local_msg = yield remote_msg
 
-                logging.info('Local:  {}'.format(repr(local_msg)))
+                logger.info('Local:  {}'.format(repr(local_msg)))
                 sock.send(pickle.dumps(local_msg))
