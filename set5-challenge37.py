@@ -132,9 +132,9 @@ def conduct_zero_key_handshake(A_factor):
         salt, B = response_delegate.send(A)
 
         S = 0
-        K = sha256(srp._int_to_str(S)).digest()
+        K = sha256(srp.int_to_str(S)).digest()
 
-        hmac = HMAC(K, srp._int_to_str(salt)).hexdigest()
+        hmac = HMAC(K, srp.int_to_str(salt)).hexdigest()
         validation_message = response_delegate.send(hmac)
         assert validation_message == 'OK'
 

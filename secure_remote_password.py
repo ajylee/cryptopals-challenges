@@ -29,7 +29,7 @@ CLIENT_LOGIN_DATA = mk_login_data(email = 'abc@example.org',
                                   password = 'some_password',)
 
 
-def _int_to_str(nn):
+def int_to_str(nn):
     hex_rep = hex(nn)[2:].rstrip('L')
     padded = '0' * (len(hex_rep) % 2) + hex_rep
     return binascii.unhexlify(padded)
@@ -43,26 +43,26 @@ def gen_salt():
 
 
 def calculate_u(A, B):
-    uH = sha256(_int_to_str(A + B)).digest()
+    uH = sha256(int_to_str(A + B)).digest()
     return _str_to_int(uH)
 
 
 def calculate_x(salt, password):
-    xH = sha256(_int_to_str(salt) + password).digest()
+    xH = sha256(int_to_str(salt) + password).digest()
     return _str_to_int(xH)
 
 
 def calculate_K_client(B, k, g, x, a, u, N):
     # S = (B - k * g**x)**(a + u * x) % N
     S = nt.modexp(B - k * nt.modexp(g, x, N), (a + u * x), N)
-    K = sha256(_int_to_str(S)).digest()
+    K = sha256(int_to_str(S)).digest()
     return K
 
 
 def calculate_K_server(A, v, u, b, N):
     #  S = (A * v**u) ** b % N
     S = nt.modexp(A * nt.modexp(v, u, N), b, N)
-    K = sha256(_int_to_str(S)).digest()
+    K = sha256(int_to_str(S)).digest()
     return K
 
 
@@ -111,7 +111,7 @@ class Server(object):
         self.session_data[session_id] = SessionData(salt, K)
 
         client_hmac = yield (salt, B)
-        my_hmac = HMAC(K, _int_to_str(salt)).hexdigest()
+        my_hmac = HMAC(K, int_to_str(salt)).hexdigest()
 
         if my_hmac == client_hmac:
             yield 'OK'
@@ -142,7 +142,7 @@ class Client(object):
 
         self.handshake_data = SessionData(salt, K)
 
-        hmac = HMAC(K, _int_to_str(salt)).hexdigest()
+        hmac = HMAC(K, int_to_str(salt)).hexdigest()
         validation_message = response_delegate.send(hmac)
         assert validation_message == 'OK'
 
