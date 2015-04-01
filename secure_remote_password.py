@@ -25,6 +25,8 @@ def mk_login_data(email, password):
         password = password,)
 
 
+PUBLIC_LOGIN_DATA = mk_login_data(None, None)
+
 CLIENT_LOGIN_DATA = mk_login_data(email = 'abc@example.org',
                                   password = 'some_password',)
 
