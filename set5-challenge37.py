@@ -23,16 +23,16 @@ def conduct_normal_handshake(address):
         c.conduct_handshake(response_delegate)
 
 
-def conduct_zero_key_handshake(address, A_factor):
-    dat = srp.mk_login_data(srp.CLIENT_LOGIN_DATA.email,
-                            'wrong password')
+def conduct_zero_key_handshake(address, N, email, A_factor):
+    # Mallory only needs to know email and N from the login data.
+    # Any integer A_factor will work.
 
     with contextlib.closing(socket_handshake.local_respond_handshake(address)) \
          as response_delegate:
         response_delegate.next()
-        response_delegate.send(dat.email)
+        response_delegate.send(email)
 
-        A = A_factor * dat.N
+        A = A_factor * N
 
         salt, B = response_delegate.send(A)
 
@@ -48,9 +48,12 @@ def main():
     threading.Thread(target=socket_handshake.serve, args=(ADDRESS, srp.Server())).start()
     threading.Thread(target=conduct_normal_handshake, args=(ADDRESS,)).run()
 
-    for A_factor in xrange(4):
+    email = srp.CLIENT_LOGIN_DATA.email
+    N = srp.CLIENT_LOGIN_DATA.N
+
+    for A_factor in [0, -1, 1, 3]:
         threading.Thread(target=conduct_zero_key_handshake,
-                         args=(ADDRESS, A_factor,)).run()
+                         args=(ADDRESS, N, email, A_factor)).run()
 
     socket_handshake.signal_queue.put('exit')
 
