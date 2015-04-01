@@ -9,11 +9,14 @@ import threading
 import logging
 import string
 import itertools
+import Queue
 
 import secure_remote_password as srp
 import socket_handshake
 import number_theory as nt
 
+
+mallory_solved_password = Queue.Queue()
 
 LEGIT_ADDRESS = ('localhost', 8081)
 MITM_ADDRESS = ('localhost', 9081)
@@ -132,31 +135,50 @@ class MalloryServer(object):
 
         hmac_oracle = mk_hmac_oracle(g, N, A, salt, b, u, hmac)
 
-        def task():
+        def offline_password_solve():
             time.sleep(0.5)
+
             logging.info('Begin solving password offline')
             password = solve_password(hmac_oracle)
+            mallory_solved_password.put(password)
+
             logging.info('Solved password: {}'.format(password))
 
-        threading.Thread(target=task).start()
+        threading.Thread(target=offline_password_solve).start()
 
         yield 'OK'
 
 
 def main():
+    # start servers
     threading.Thread(target=socket_handshake.serve,
                      args=(LEGIT_ADDRESS, SimplifiedServer())).start()
 
     threading.Thread(target=socket_handshake.serve,
                      args=(MITM_ADDRESS, MalloryServer())).start()
 
+
+    # do handshakes
+
+    logging.info('')
+    logging.info('*************************************')
+    logging.info('Initiate handshake with actual server')
+    logging.info('*************************************')
+
     threading.Thread(
         target=conduct_simplified_handshake, args=(LEGIT_ADDRESS,)).run()
 
     time.sleep(0.5)
 
+    logging.info('')
+    logging.info('*************************************')
+    logging.info('Initiate handshake with mallory')
+    logging.info('*************************************')
+
     threading.Thread(
         target=conduct_simplified_handshake, args=(MITM_ADDRESS,)).run()
+
+    assert mallory_solved_password.get() == srp.CLIENT_LOGIN_DATA.password
 
     socket_handshake.signal_queue.put('exit')
 
@@ -164,5 +186,6 @@ def main():
 if __name__ == '__main__':
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger(socket_handshake.__name__).setLevel(logging.WARNING)
 
     main()
