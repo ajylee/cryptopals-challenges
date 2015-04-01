@@ -1,7 +1,7 @@
 from collections import namedtuple
 import binascii
 import random
-from hashlib import sha256 
+from hashlib import sha256
 from hmac import HMAC
 
 import number_theory.diffie_hellman as dh
@@ -45,12 +45,12 @@ def calculate_u(A, B):
     uH = sha256(_int_to_str(A + B)).digest()
     return _str_to_int(uH)
 
-        
+
 def calculate_x(salt, password):
     xH = sha256(_int_to_str(salt) + password).digest()
     return _str_to_int(xH)
 
-    
+
 def calculate_K_client(B, k, g, x, a, u, N):
     # S = (B - k * g**x)**(a + u * x) % N
     S = nt.modexp(B - k * nt.modexp(g, x, N), (a + u * x), N)
@@ -68,7 +68,7 @@ def calculate_K_server(A, v, u, b, N):
 def gen_bB_server(login_data, v):
     dat = login_data
     b = dh.mod_random(dat.N)
-    B = dat.k * v + nt.modexp(dat.g, b, dat.N) 
+    B = dat.k * v + nt.modexp(dat.g, b, dat.N)
     return b, B
 
 
@@ -87,7 +87,7 @@ class Server(object):
         self._session_count = 0
 
     def new_session(self):
-        _id = self._session_count 
+        _id = self._session_count
         self._session_count += 1
         self.session_data[_id] = {}
         return _id
@@ -100,7 +100,7 @@ class Server(object):
         dat = self.login_data[email]
         salt, v = gen_salt_and_v_server(dat)
 
-        A = yield 
+        A = yield
 
         b, B = gen_bB_server(dat, v)
 
@@ -118,7 +118,7 @@ class Server(object):
             yield 'INVALID HMAC'
 
 
-class Client(object):    
+class Client(object):
     def __init__(self):
         self.my_login_data = CLIENT_LOGIN_DATA
         self.handshake_data = None
@@ -130,7 +130,7 @@ class Client(object):
         response_delegate.send(self.my_login_data.email)
 
         dat = self.my_login_data
-        
+
         a = dh.mod_random(self.my_login_data.N)
         A = nt.modexp(dat.g, a, dat.N)
 
@@ -145,6 +145,8 @@ class Client(object):
         hmac = HMAC(K, _int_to_str(salt)).hexdigest()
         validation_message = response_delegate.send(hmac)
         assert validation_message == 'OK'
+
+        response_delegate.close()
 
 
 def test_SRP():
