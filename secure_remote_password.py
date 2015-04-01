@@ -81,10 +81,9 @@ def gen_salt_and_v_server(login_data):
     return salt, v
 
 
-def simple_private_public_pair(login_data):
-    dat = login_data
-    priv = dh.mod_random(dat.N)
-    pub = nt.modexp(dat.g, priv, dat.N)
+def simple_private_public_pair(g, N):
+    priv = dh.mod_random(N)
+    pub = nt.modexp(g, priv, N)
     return priv, pub
 
 
@@ -132,13 +131,12 @@ class Client(object):
         self.handshake_data = None
 
     def conduct_handshake(self, response_delegate):
-        response_delegate.next()
-
-        response_delegate.send(self.my_login_data.email)
-
         dat = self.my_login_data
 
-        a, A = simple_private_public_pair(dat)
+        response_delegate.next()
+        response_delegate.send(dat.email)
+
+        a, A = simple_private_public_pair(dat.g, dat.N)
 
         salt, B = response_delegate.send(A)
 
