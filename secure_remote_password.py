@@ -158,7 +158,7 @@ class Client(object):
 def test_SRP():
     s = Server()
     c = Client()
-    with contextlib.closing(s.response_delegate()) as rd:
+    with contextlib.closing(s.respond_handshake()) as rd:
         c.conduct_handshake(rd)
 
 
