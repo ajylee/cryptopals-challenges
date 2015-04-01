@@ -29,7 +29,7 @@ CLIENT_LOGIN_DATA = mk_login_data(email = 'abc@example.org',
 
 
 def _int_to_str(nn):
-    hex_rep = hex(nn).lstrip('0x').rstrip('L')
+    hex_rep = hex(nn)[2:].rstrip('L')
     padded = '0' * (len(hex_rep) % 2) + hex_rep
     return binascii.unhexlify(padded)
 

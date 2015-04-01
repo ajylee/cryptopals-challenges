@@ -23,7 +23,7 @@ class UndecidableException(Exception):
 def s_to_key(s):
     return str(bytearray(
         tz.take(BLOCK_SIZE,
-                hash_more.SHA1(bytearray(hex(s).lstrip('0x').rstrip('L'))))))
+                hash_more.SHA1(bytearray(hex(s)[2:].rstrip('L'))))))
 
 
 def encrypt_secret_message(s, secret_message):
