@@ -1,6 +1,7 @@
 from collections import namedtuple
 import binascii
 import random
+import contextlib
 from hashlib import sha256
 from hmac import HMAC
 
@@ -123,8 +124,7 @@ class Client(object):
         self.my_login_data = CLIENT_LOGIN_DATA
         self.handshake_data = None
 
-    def conduct_handshake(self, server):
-        response_delegate = server.respond_handshake()
+    def conduct_handshake(self, response_delegate):
         response_delegate.next()
 
         response_delegate.send(self.my_login_data.email)
@@ -152,7 +152,8 @@ class Client(object):
 def test_SRP():
     s = Server()
     c = Client()
-    c.conduct_handshake(s)
+    with contextlib.closing(s.response_delegate()) as rd:
+        c.conduct_handshake(rd)
 
 
 if __name__ == '__main__':

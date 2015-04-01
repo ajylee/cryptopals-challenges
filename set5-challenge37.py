@@ -1,11 +1,11 @@
 
 import signal
 import socket
-import sys
-import threading
 import contextlib
+import threading
 import Queue
 import select
+import time
 import pickle
 import logging
 from functools import partial
@@ -80,12 +80,30 @@ def serve():
 # Local
 # ======
 
-class LocalInterface(object):
-    def respond_handshake(self):
-        with contextlib.closing(socket.socket()) as sock:
-            sock.connect((HOST, PORT))
+def _create_connection():
+    while True:
+        if not signal_queue.empty():
+            return 1, None
+        try:
+            return 0, socket.create_connection((HOST, PORT))
+        except socket.error, mesg:
+            logging.warning('Client socket error {}: {}. Retrying.'.format(*mesg))
+            time.sleep(0.05)
 
-            while 1:
+
+def local_respond_handshake():
+    return_code, bare_sock = _create_connection()
+    if return_code != 0:
+        raise StopIteration
+
+    with contextlib.closing(bare_sock) as sock:
+        while True:
+            if not signal_queue.empty():
+                raise StopIteration
+
+            readable, _w, _e = select.select([sock], [], [], 0.5)
+
+            if sock in readable:
                 remote_msg = pickle.loads(sock.recv(1024))
                 logging.info('Remote: {}'.format(repr(remote_msg)))
 
@@ -97,20 +115,19 @@ class LocalInterface(object):
 
 def conduct_normal_handshake():
     c = secure_remote_password.Client()
-    s = LocalInterface()
-    c.conduct_handshake(s)
+    with contextlib.closing(local_respond_handshake()) as response_delegate:
+        c.conduct_handshake(response_delegate)
 
 
-def conduct_zero_key_handshake():
-    server = LocalInterface()
+def conduct_zero_key_handshake(A_factor):
     dat = secure_remote_password.mk_login_data(srp.CLIENT_LOGIN_DATA.email,
                                                'wrong password')
 
-    with contextlib.closing(server.respond_handshake()) as response_delegate:
+    with contextlib.closing(local_respond_handshake()) as response_delegate:
         response_delegate.next()
         response_delegate.send(dat.email)
 
-        A = 0
+        A = A_factor * dat.N
 
         salt, B = response_delegate.send(A)
 
@@ -119,18 +136,18 @@ def conduct_zero_key_handshake():
 
         hmac = HMAC(K, srp._int_to_str(salt)).hexdigest()
         validation_message = response_delegate.send(hmac)
-        #assert validation_message == 'OK'
-
-        response_delegate.close()
+        assert validation_message == 'OK'
 
 
 if __name__ == '__main__':
     logging.basicConfig()
-    logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger().setLevel(logging.WARNING)
 
     threading.Thread(target=serve).start()
     threading.Thread(target=conduct_normal_handshake).run()
-    threading.Thread(target=conduct_zero_key_handshake).run()
+
+    for A_factor in xrange(4):
+        threading.Thread(target=conduct_zero_key_handshake, args=(A_factor,)).run()
 
     signal_queue.put('exit')
     # signal.pause()   # keep main thread alive
