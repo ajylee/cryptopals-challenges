@@ -6,12 +6,9 @@ import number_theory as nt
 
 
 def keygen():
-
     prime_size = 16  # num bits
 
     p, q = getPrime(prime_size), getPrime(prime_size)
-
-    # Let n be p * q.
 
     n = p * q  # Your RSA math is modulo n.
 
@@ -30,8 +27,6 @@ def str_modexp(strn, e, n):
     ll = nt.modexp(g, e, n)
     return long_to_bytes(ll)
 
-
-# To encrypt: . To decrypt:
 
 def encrypt(public_key, message):
     # c = m**e%n
@@ -53,6 +48,10 @@ def test_rsa():
     message = 'Hello, this is the message.'
 
     c  = encrypt(pubkey, message)
-    m1 = decrypt(privkey, message)
+    m1 = decrypt(privkey, c)
 
     assert m1 == message
+
+
+if __name__ == '__main__':
+    test_rsa()
