@@ -44,6 +44,15 @@ def decrypt(private_key, ciphertext):
     return str_modexp(ciphertext, d, n)
 
 
-
+def test_rsa():
     # Test this out with a number, like "42".
     # Repeat with bignum primes (keep e=3).
+
+    pubkey, privkey = keygen()
+
+    message = 'Hello, this is the message.'
+
+    c  = encrypt(pubkey, message)
+    m1 = decrypt(privkey, message)
+
+    assert m1 == message

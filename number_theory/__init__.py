@@ -1,1 +1,1 @@
-from num_tools import modexp
+from num_tools import modexp, invmod
