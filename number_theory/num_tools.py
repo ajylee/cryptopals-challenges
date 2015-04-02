@@ -59,7 +59,8 @@ def invmod(a, n):
     # adapted from haskell and python versions in Rosetta Code
     # a * invmod(a) 
     g, x, y = extended_gcd(a, n)
-    assert g == 1
+    if g != 1:
+        print 'g != 1'
     return x % n
 
 

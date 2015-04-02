@@ -1,5 +1,5 @@
 
-from Crypto.Util.number import getPrime, long2str, str2long
+from Crypto.Util.number import getPrime, long_to_bytes, bytes_to_long
 
 import number_theory as nt
 
@@ -15,7 +15,7 @@ def keygen():
 
     n = p * q  # Your RSA math is modulo n.
 
-    et = (p-1)*(q-1) % n # (the "totient"). You need this value only for keygen.
+    et = (p-1)*(q-1) # (the "totient"). You need this value only for keygen.
     e = 3
     d = nt.invmod(e, et) % n
 
@@ -25,10 +25,10 @@ def keygen():
     return public_key, private_key
 
 
-def str_modexp(strn, u, p):
-    g = str2long(strn)
+def str_modexp(strn, e, n):
+    g = bytes_to_long(strn)
     ll = nt.modexp(g, e, n)
-    return long2str(ll)
+    return long_to_bytes(ll)
 
 
 # To encrypt: . To decrypt:
