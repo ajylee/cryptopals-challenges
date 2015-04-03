@@ -2,6 +2,8 @@ import toolz as tz
 import toolz.curried as tzc
 import operator
 from Crypto.Util.number import long_to_bytes, bytes_to_long
+
+import number_theory as nt
 from my_rsa import keygen, encrypt_nopad
 
 # CRT
@@ -36,27 +38,28 @@ def _cube_root(nn):
 
 def solve_plaintext(pubkeys, ciphertexts):
     N = tuple(tz.pluck(1, pubkeys))
-    C = ciphertexts
-    M_s = [product(drop_at(ii, n)) for ii in xrange(3)]
+    C = map(bytes_to_long, ciphertexts)
+    M_s = [product(drop_at(ii, N)) for ii in xrange(3)]
 
-    assert len(c) == len(n) == 3
-    assert all(e == 3 for e, _ in pubkeys)
+    assert M_s[1] == N[0] * N[2]
+    assert len(C) == len(N) == 3
+    assert all(e == 3 for e in tz.pluck(0, pubkeys))
 
-    message_cubed = sum(map(bytes_to_long, c))
+    message_cubed = sum(c * m_s * nt.invmod(m_s, n)
+                        for c, m_s, n in zip(C, M_s, N))
 
     return long_to_bytes(_cube_root(message_cubed))
 
 
 def test_solve_plaintext():
     k = [keygen() for _ in xrange(3)]
-    pubkeys = tz.pluck(0, k)
+    pubkeys = tuple(tz.pluck(0, k))
 
     m = 'hello'
 
-    c = [encrypt_nopad(pubkey, m) for pubkey, privkey in k]
+    c = [encrypt_nopad(pubkey, m) for pubkey in pubkeys]
 
     print repr(solve_plaintext(pubkeys, c))
-
 
 
 if __name__ == '__main__':
