@@ -1,10 +1,11 @@
 import toolz as tz
 import toolz.curried as tzc
 import operator
+import math as ma
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 
 import number_theory as nt
-from my_rsa import keygen, encrypt_nopad
+from my_rsa import keygen, encrypt_nopad, decrypt_nopad, BLOCK_SIZE
 
 # CRT
 # ====
@@ -32,8 +33,24 @@ def drop_at(n, seq):
 product = tzc.reduce(operator.mul)
 
 
-def _cube_root(nn):
-    return long(round(nn ** (1./3.)))
+def _long_root(nn, rr):
+    _float_root = nn ** (1./float(rr))
+    _guess = long(round(_float_root))
+    change = long(round(_guess ** (1. / float(rr))))
+
+    while True:
+        _maybe_nn = _guess ** rr
+
+        if _maybe_nn == nn:
+            return _guess
+        else:
+            diff = nn - _maybe_nn
+            assert diff > 0
+
+            change = max(long(round(diff / float((2 ** rr - 1) * _guess ** 2))),
+                         1)
+
+            _guess += change
 
 
 def solve_plaintext(pubkeys, ciphertexts):
@@ -42,24 +59,31 @@ def solve_plaintext(pubkeys, ciphertexts):
     M_s = [product(drop_at(ii, N)) for ii in xrange(3)]
 
     assert M_s[1] == N[0] * N[2]
+    assert M_s[0] == N[1] * N[2]
+    assert M_s[2] == N[0] * N[1]
+
     assert len(C) == len(N) == 3
     assert all(e == 3 for e in tz.pluck(0, pubkeys))
 
     message_cubed = sum(c * m_s * nt.invmod(m_s, n)
-                        for c, m_s, n in zip(C, M_s, N))
+                        for c, m_s, n in zip(C, M_s, N)) % product(N)
 
-    return long_to_bytes(_cube_root(message_cubed))
+    return long_to_bytes(_long_root(message_cubed, 3))
 
 
 def test_solve_plaintext():
-    k = [keygen() for _ in xrange(3)]
-    pubkeys = tuple(tz.pluck(0, k))
+    K = [keygen() for _ in xrange(3)]
+    pubkeys = tuple(tz.pluck(0, K))
 
-    m = 'hello'
+    m = 'this is secret'
 
-    c = [encrypt_nopad(pubkey, m) for pubkey in pubkeys]
+    assert len(m) <= BLOCK_SIZE
 
-    print repr(solve_plaintext(pubkeys, c))
+    C = [encrypt_nopad(pubkey, m) for pubkey in pubkeys]
+    assert all(decrypt_nopad(privkey, c) == m for c, privkey in
+               zip(C, tz.pluck(1, K)))
+
+    assert solve_plaintext(pubkeys, C) == m
 
 
 if __name__ == '__main__':
