@@ -36,10 +36,10 @@ def sign(privkey, message):
     return (message, encrypt(privkey, padded))
 
 
-def _reinstate_end_0s(plaintext_without_0s):
-    # NOTE: The (big-endian) decrypted block has its trailing zeros removed.
-    return (plaintext_without_0s
-            + (BLOCK_SIZE - len(plaintext_without_0s)) * chr(0))
+def _reinstate_initial_0s(plaintext_without_0s):
+    # NOTE: The (big-endian) decrypted block has its initial zeros removed.
+    return ((BLOCK_SIZE - len(plaintext_without_0s)) * chr(0)
+            + plaintext_without_0s)
 
 
 def verify(pubkey, (message, signature)):
@@ -52,7 +52,7 @@ def verify(pubkey, (message, signature)):
     else:
         der = DerObject()
         der.decode(asn1_hash)
-        return der.payload == _hash = sha256(message).digest()
+        return der.payload == sha256(message).digest()
 
 
 def break_sig_cube(message):
@@ -60,10 +60,12 @@ def break_sig_cube(message):
     padding = '\x00\x01\xff\x00'
     formatted = padding + asn1_hash 
 
-    return _reinstate_trailing_0s(
+    sig = _reinstate_initial_0s(
         long_to_bytes(
             nt.long_root(
                 bytes_to_long(formatted), 3)))
+
+    return (message, sig)
 
 
 def test_sign_and_verify():
@@ -82,9 +84,9 @@ def test_break_sig():
 
     message = 'hi mom'
 
-    signed = sign(privkey, message)
+    signed = break_sig_cube(message)
 
-    verify(pubkey, signed)
+    assert verify(pubkey, signed)
 
 
 if __name__ == '__main__':
