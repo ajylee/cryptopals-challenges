@@ -1,4 +1,24 @@
 
+def long_root(nn, rr):
+    _float_root = nn ** (1./float(rr))
+    _guess = long(round(_float_root))
+    change = long(round(_guess ** (1. / float(rr))))
+
+    while True:
+        _maybe_nn = _guess ** rr
+
+        if _maybe_nn == nn:
+            return _guess
+        else:
+            diff = nn - _maybe_nn
+            assert diff > 0
+
+            change = max(long(round(diff / float((2 ** rr - 1) * _guess ** 2))),
+                         1)
+
+            _guess += change
+
+
 def byte_count(n):
     count = 0
     while n:
@@ -32,7 +52,7 @@ def _next_ab(a, b):
     return (b, a % b, a // b)
 
 def _next_xy(x0, x1, div):
-    # x: [1, 0,       1,             -div[3], 1 + div[3] * div[4], ...] 
+    # x: [1, 0,       1,             -div[3], 1 + div[3] * div[4], ...]
     # y: [0, 1, -div[2], 1 + div[2] * div[3],
     #     -div[2] - div[4] - div[2] * div[3] * div[4], ...]
     x2 = x0 - div * x1
@@ -51,7 +71,7 @@ def extended_gcd(aa, bb):
         last_remainder, remainder, div = _next_ab(last_remainder, remainder)
         x, last_x = _next_xy(last_x, x, div), x
         y, last_y = _next_xy(last_y, y, div), y
-        
+
     return (last_remainder, last_x * _sgn(aa), last_y * _sgn(bb))
 
 

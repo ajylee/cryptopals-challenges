@@ -33,26 +33,6 @@ def drop_at(n, seq):
 product = tzc.reduce(operator.mul)
 
 
-def _long_root(nn, rr):
-    _float_root = nn ** (1./float(rr))
-    _guess = long(round(_float_root))
-    change = long(round(_guess ** (1. / float(rr))))
-
-    while True:
-        _maybe_nn = _guess ** rr
-
-        if _maybe_nn == nn:
-            return _guess
-        else:
-            diff = nn - _maybe_nn
-            assert diff > 0
-
-            change = max(long(round(diff / float((2 ** rr - 1) * _guess ** 2))),
-                         1)
-
-            _guess += change
-
-
 def solve_plaintext(pubkeys, ciphertexts):
     N = tuple(tz.pluck(1, pubkeys))
     C = map(bytes_to_long, ciphertexts)
@@ -68,7 +48,7 @@ def solve_plaintext(pubkeys, ciphertexts):
     message_cubed = sum(c * m_s * nt.invmod(m_s, n)
                         for c, m_s, n in zip(C, M_s, N)) % product(N)
 
-    return long_to_bytes(_long_root(message_cubed, 3))
+    return long_to_bytes(nt.long_root(message_cubed, 3))
 
 
 def test_solve_plaintext():
