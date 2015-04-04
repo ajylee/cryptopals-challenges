@@ -91,3 +91,4 @@ def test_break_sig():
 
 if __name__ == '__main__':
     test_sign_and_verify()
+    test_break_sig()
