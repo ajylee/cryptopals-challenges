@@ -2,10 +2,10 @@ import re
 from hashlib import sha256
 import Crypto.Random
 from Crypto.Util.asn1 import DerOctetString, DerObject
-from Crypto.Util.number import long_to_bytes, bytes_to_long
 
 import number_theory as nt
-from my_rsa import keygen, encrypt, decrypt
+from my_rsa import (keygen, encrypt, decrypt,
+                    long_to_bytes, bytes_to_long)
 
 BLOCK_SIZE = 1024 / 8  # 128 bytes
 
@@ -36,10 +36,10 @@ def sign(privkey, message):
     return (message, encrypt(privkey, padded))
 
 
-def _reinstate_initial_0s(plaintext_without_0s):
-    # NOTE: The (big-endian) decrypted block has its initial zeros removed.
-    return ((BLOCK_SIZE - len(plaintext_without_0s)) * chr(0)
-            + plaintext_without_0s)
+def _reinstate_end_0s(plaintext_without_0s):
+    # NOTE: The (big-endian) decrypted block has its trailing zeros removed.
+    return (plaintext_without_0s
+            + (BLOCK_SIZE - len(plaintext_without_0s)) * chr(0))
 
 
 def verify(pubkey, (message, signature)):
@@ -58,9 +58,9 @@ def verify(pubkey, (message, signature)):
 def break_sig_cube(message):
     asn1_hash = DerOctetString(sha256(message).digest()).encode()
     padding = '\x00\x01\xff\x00'
-    formatted = padding + asn1_hash + (BLOCK_SIZE - len(padding)) * chr(0)
+    formatted = padding + asn1_hash 
 
-    return _reinstate_initial_0s(
+    return _reinstate_trailing_0s(
         long_to_bytes(
             nt.long_root(
                 bytes_to_long(formatted), 3)))
