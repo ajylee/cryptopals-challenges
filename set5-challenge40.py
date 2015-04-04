@@ -72,7 +72,7 @@ def solve_plaintext(pubkeys, ciphertexts):
 
 
 def test_solve_plaintext():
-    K = [keygen() for _ in xrange(3)]
+    K = [keygen(BLOCK_SIZE) for _ in xrange(3)]
     pubkeys = tuple(tz.pluck(0, K))
 
     m = 'this is secret'

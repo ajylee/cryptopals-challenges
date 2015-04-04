@@ -15,9 +15,9 @@ def partition_str(size, strn):
         yield strn[ii:ii + size]
 
 
-def keygen():
-    # => p * q has BLOCK_SIZE bytes => Can encrypt 15 byte blocks as 16 byte blocks
-    prime_size_bits = 8 * (BLOCK_SIZE / 2) + 1
+def keygen(block_size):
+    # => p * q has block_size num bytes
+    prime_size_bits = 8 * (block_size / 2)
 
     #p, q = getPrime(prime_size), getPrime(prime_size)
 
@@ -46,7 +46,7 @@ def str_modexp(strn, e, n):
     return long_to_bytes(ll)
 
 
-def encrypt_multi(public_key, message):
+def encrypt_multi(block_size, public_key, message):
     # c = m**e%n
     e, n = public_key
 
@@ -62,7 +62,7 @@ def encrypt_multi(public_key, message):
         ''.join)
 
 
-def decrypt_multi(private_key, ciphertext):
+def decrypt_multi(block_size, private_key, ciphertext):
     # m = c**d%n
     d, n = private_key
 
@@ -86,22 +86,22 @@ def decrypt(private_key, ciphertext):
     return str_modexp(ciphertext, *private_key)
 
 
-def test_rsa():
-    pubkey, privkey = keygen()
+def test_rsa_multi():
+    pubkey, privkey = keygen(BLOCK_SIZE)
 
     message = Crypto.Random.new().read(200)
 
-    c  = encrypt_multi(pubkey, message)
-    m1 = decrypt_multi(privkey, c)
+    c  = encrypt_multi(BLOCK_SIZE, pubkey, message)
+    m1 = decrypt_multi(BLOCK_SIZE, privkey, c)
 
     assert m1 == message
 
 
-def test_rsa_nopad():
-    pubkey, privkey = keygen()
+def test_rsa():
+    pubkey, privkey = keygen(BLOCK_SIZE)
 
     # message must not begin with \x00
-    message = chr(1) + Crypto.Random.new().read(15)
+    message = chr(1) + Crypto.Random.new().read(31)
 
     c  = encrypt(pubkey, message)
     m1 = decrypt(privkey, c)
@@ -111,7 +111,7 @@ def test_rsa_nopad():
 
 if __name__ == '__main__':
     for ii in xrange(10):
-        test_rsa()
+        test_rsa_multi()
 
     for ii in xrange(10):
-        test_rsa_nopad()
+        test_rsa()
