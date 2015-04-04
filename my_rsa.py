@@ -7,7 +7,7 @@ import toolz as tz
 import toolz.curried as tzc
 
 
-BLOCK_SIZE = 16
+BLOCK_SIZE = 128   # bytes
 
 @tz.curry
 def partition_str(size, strn):
@@ -16,8 +16,8 @@ def partition_str(size, strn):
 
 
 def keygen():
-    # => p * q has 16 bytes => Can encrypt 15 byte blocks as 16 byte blocks
-    prime_size_bits = 8 * 8 + 1
+    # => p * q has BLOCK_SIZE bytes => Can encrypt 15 byte blocks as 16 byte blocks
+    prime_size_bits = 8 * (BLOCK_SIZE / 2) + 1
 
     #p, q = getPrime(prime_size), getPrime(prime_size)
 
@@ -26,7 +26,7 @@ def keygen():
     et = 0
 
     while et % e == 0:
-        p, q = getPrime(prime_size_bits), getPrime(prime_size_bits)
+        p, q = getPrime(prime_size_bits + 1), getPrime(prime_size_bits)
         n = p * q  # Your RSA math is modulo n.
         et = (p-1)*(q-1) # (the "totient"). You need this value only for keygen.
 
@@ -89,7 +89,7 @@ def decrypt_nopad(private_key, ciphertext):
 def test_rsa():
     pubkey, privkey = keygen()
 
-    message = Crypto.Random.new().read(100)
+    message = Crypto.Random.new().read(200)
 
     c  = encrypt(pubkey, message)
     m1 = decrypt(privkey, c)
