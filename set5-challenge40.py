@@ -5,7 +5,7 @@ import math as ma
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 
 import number_theory as nt
-from my_rsa import keygen, encrypt_nopad, decrypt_nopad, BLOCK_SIZE
+from my_rsa import keygen, encrypt, decrypt, BLOCK_SIZE
 
 # CRT
 # ====
@@ -79,8 +79,8 @@ def test_solve_plaintext():
 
     assert len(m) <= BLOCK_SIZE
 
-    C = [encrypt_nopad(pubkey, m) for pubkey in pubkeys]
-    assert all(decrypt_nopad(privkey, c) == m for c, privkey in
+    C = [encrypt(pubkey, m) for pubkey in pubkeys]
+    assert all(decrypt(privkey, c) == m for c, privkey in
                zip(C, tz.pluck(1, K)))
 
     assert solve_plaintext(pubkeys, C) == m

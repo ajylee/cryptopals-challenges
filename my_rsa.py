@@ -46,7 +46,7 @@ def str_modexp(strn, e, n):
     return long_to_bytes(ll)
 
 
-def encrypt(public_key, message):
+def encrypt_multi(public_key, message):
     # c = m**e%n
     e, n = public_key
 
@@ -62,7 +62,7 @@ def encrypt(public_key, message):
         ''.join)
 
 
-def decrypt(private_key, ciphertext):
+def decrypt_multi(private_key, ciphertext):
     # m = c**d%n
     d, n = private_key
 
@@ -78,11 +78,11 @@ def decrypt(private_key, ciphertext):
         ''.join)
 
 
-def encrypt_nopad(public_key, message):
+def encrypt(public_key, message):
     return str_modexp(message, *public_key)
 
 
-def decrypt_nopad(private_key, ciphertext):
+def decrypt(private_key, ciphertext):
     return str_modexp(ciphertext, *private_key)
 
 
@@ -91,8 +91,8 @@ def test_rsa():
 
     message = Crypto.Random.new().read(200)
 
-    c  = encrypt(pubkey, message)
-    m1 = decrypt(privkey, c)
+    c  = encrypt_multi(pubkey, message)
+    m1 = decrypt_multi(privkey, c)
 
     assert m1 == message
 
@@ -103,8 +103,8 @@ def test_rsa_nopad():
     # message must not begin with \x00
     message = chr(1) + Crypto.Random.new().read(15)
 
-    c  = encrypt_nopad(pubkey, message)
-    m1 = decrypt_nopad(privkey, c)
+    c  = encrypt(pubkey, message)
+    m1 = decrypt(privkey, c)
 
     assert m1 == message
 
