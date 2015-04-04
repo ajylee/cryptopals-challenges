@@ -57,11 +57,10 @@ def verify(pubkey, (message, signature)):
     else:
         der = DerObject()
         der.decode(asn1_hash)
-
         return der.payload == sha256(message).digest()
 
         
-def str_part_cube_root(ss, pad_size=80):
+def str_part_cube_root(ss, pad_size):
     rr = 3
     nn = bytes_to_long(ss + chr(0) * pad_size)
     _float_root = nn ** (1./float(rr))
@@ -83,13 +82,16 @@ def str_part_cube_root(ss, pad_size=80):
             _guess += change
 
 
-def break_sig_cube(message):
+def break_sig_cube(pubkey, message):
     asn1_hash = DerOctetString(sha256(message).digest()).encode()
     padding = '\x00\x01\xff\x00'
     formatted = padding + asn1_hash 
+    pad_size = BLOCK_SIZE - len(formatted)
+
+    assert pad_size > 80, 'need at least pad size 80 to search for a valid cube root'
 
     sig = _reinstate_initial_0s(
-            str_part_cube_root(formatted))
+            str_part_cube_root(formatted, pad_size=pad_size))
 
     return (message, sig)
 
@@ -109,12 +111,14 @@ def test_break_sig():
 
     message = 'hi mom'
 
-    signed = break_sig_cube(message)
+    signed = break_sig_cube(pubkey, message)
 
     assert verify(pubkey, signed)
 
 
 if __name__ == '__main__':
-    for ii in xrange(20):
+    for ii in xrange(10):
         test_sign_and_verify()
-    test_break_sig()
+
+    for ii in xrange(10):
+        test_break_sig()
