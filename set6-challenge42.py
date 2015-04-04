@@ -19,20 +19,25 @@ def check_and_remove_padding(plaintext_signature):
     """If valid padding, removes padding and returns tuple (True, ASN.1 HASH)
     Otherwise returns (False, None)"""
 
-    pattern = chr(0) + chr(1) + chr(0xff) + '+' + chr(0) + '(.*)'
+    # NOTE: we cannot directly match the hash content using a regex group
+    # because of possible newline chars (\n).
+    pattern = chr(0) + chr(1) + chr(0xff) + '+' + chr(0)
 
     r = re.search(pattern, plaintext_signature)
 
     if not r:
         return (False, None)
     else:
-        return (True, r.group(1))
+        pad_len = len(r.group(0))
+        asn1_hash = plaintext_signature[pad_len:]
+        return (True, asn1_hash)
 
 
 def sign(privkey, message):
     _hash = sha256(message).digest()
     asn1_hash = DerOctetString(_hash).encode()
     padded = pad(asn1_hash)
+
     return (message, encrypt(privkey, padded))
 
 
@@ -52,6 +57,7 @@ def verify(pubkey, (message, signature)):
     else:
         der = DerObject()
         der.decode(asn1_hash)
+
         return der.payload == sha256(message).digest()
 
         
@@ -68,8 +74,6 @@ def str_part_cube_root(ss, pad_size=80):
         if '\x00' + long_to_bytes(_maybe_nn)[:-pad_size] == ss:
             return long_to_bytes(_guess)
         else:
-            #print repr(ss)
-            #print repr('\00' + long_to_bytes(_maybe_nn)[:-pad_size])
             diff = nn - _maybe_nn
             assert diff > 0
 
@@ -111,5 +115,6 @@ def test_break_sig():
 
 
 if __name__ == '__main__':
-    test_sign_and_verify()
+    for ii in xrange(20):
+        test_sign_and_verify()
     test_break_sig()
