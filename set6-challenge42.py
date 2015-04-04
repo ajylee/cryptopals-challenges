@@ -54,6 +54,30 @@ def verify(pubkey, (message, signature)):
         der.decode(asn1_hash)
         return der.payload == sha256(message).digest()
 
+        
+def str_part_cube_root(ss, pad_size=80):
+    rr = 3
+    nn = bytes_to_long(ss + chr(0) * pad_size)
+    _float_root = nn ** (1./float(rr))
+    _guess = long(round(_float_root))
+    change = long(round(_guess ** (1. / float(rr))))
+
+    while True:
+        _maybe_nn = _guess ** rr
+
+        if '\x00' + long_to_bytes(_maybe_nn)[:-pad_size] == ss:
+            return long_to_bytes(_guess)
+        else:
+            #print repr(ss)
+            #print repr('\00' + long_to_bytes(_maybe_nn)[:-pad_size])
+            diff = nn - _maybe_nn
+            assert diff > 0
+
+            change = max(long(round(diff / float((2 ** rr - 1) * _guess ** 2))),
+                         1)
+
+            _guess += change
+
 
 def break_sig_cube(message):
     asn1_hash = DerOctetString(sha256(message).digest()).encode()
@@ -61,9 +85,7 @@ def break_sig_cube(message):
     formatted = padding + asn1_hash 
 
     sig = _reinstate_initial_0s(
-        long_to_bytes(
-            nt.long_root(
-                bytes_to_long(formatted), 3)))
+            str_part_cube_root(formatted))
 
     return (message, sig)
 
@@ -75,7 +97,6 @@ def test_sign_and_verify():
 
     signed = sign(privkey, message)
 
-    assert verify(pubkey, signed)
     assert verify(pubkey, signed)
 
 
