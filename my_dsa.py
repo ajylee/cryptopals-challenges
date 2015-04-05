@@ -110,5 +110,11 @@ def test_sign_and_verify():
     assert verify(pubkey, signed)
 
 
+    pubkey_1, privkey_1 = keygen()
+    wrong_signed = sign(privkey_1, message)
+
+    assert not verify(pubkey, wrong_signed)
+
+
 if __name__ == '__main__':
     test_sign_and_verify()
