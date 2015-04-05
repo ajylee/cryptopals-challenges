@@ -26,7 +26,7 @@ def keygen(block_size):
     et = 0
 
     while et % e == 0:
-        p, q = getPrime(prime_size_bits + 1), getPrime(prime_size_bits)
+        p, q = getPrime(prime_size_bits), getPrime(prime_size_bits)
         n = p * q  # Your RSA math is modulo n.
         et = (p-1)*(q-1) # (the "totient"). You need this value only for keygen.
 
@@ -57,7 +57,7 @@ def encrypt_multi(block_size, public_key, message):
 
     return tz.pipe(
         message,
-        partition_str(BLOCK_SIZE - 1),
+        partition_str(BLOCK_SIZE - 2),
         tzc.map(_encrypt_block),
         ''.join)
 
