@@ -4,7 +4,7 @@ import number_theory as nt
 import logging
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 from my_dsa import (hash_fn, keygen, sign_plus, sign, verify,
-                    p, q, g)
+                    p, q, g, get_privkey_from_k)
 
 
 def solve_privkey(pubkey, signed_message):
