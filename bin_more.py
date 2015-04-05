@@ -29,7 +29,16 @@ def bit_count(ii):
         ii >>= 1
 
     return _cnt
+
+
+def num_bits(ii):
+    _cnt = 0
     
+    while ii:
+        ii >>= 1
+        _cnt += 1
+
+    return _cnt
 
 
 def test_chrs_ords():
