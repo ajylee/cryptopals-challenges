@@ -10,8 +10,7 @@ from collections import namedtuple
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 
 import number_theory as nt
-from my_dsa import (hash_fn, keygen, sign, verify,
-                    p, q, g, get_privkey_from_k)
+from my_dsa import (hash_fn, STANDARD_DSA_PQG, get_privkey_from_k)
 
 
 field_names = ['msg', 's', 'r', 'm']
@@ -22,7 +21,7 @@ def message_set_to_signed_message(message_set):
     return (message_set.msg, (message_set.r, message_set.s))
 
 
-def get_k_from_same_k_pair(message_set_1, message_set_2):
+def get_k_from_same_k_pair(q, message_set_1, message_set_2):
     """
 
         (m1 - m2)
@@ -41,18 +40,20 @@ def get_k_from_same_k_pair(message_set_1, message_set_2):
         return False, None
 
 
-def maybe_get_privkey_from_pair(message_set_1, message_set_2):
-    valid, maybe_k = get_k_from_same_k_pair(message_set_1, message_set_2)
+def maybe_get_privkey_from_pair(dsa_pqg, message_set_1, message_set_2):
+    p, q, g = dsa_pqg
+
+    valid, maybe_k = get_k_from_same_k_pair(q, message_set_1, message_set_2)
 
     if not valid:
         return (False, None)
 
     maybe_r = nt.modexp(g, maybe_k, p) % q
 
-    maybe_privkey_1 = get_privkey_from_k(
+    maybe_privkey_1 = get_privkey_from_k(dsa_pqg,
         message_set_to_signed_message(message_set_1), maybe_k)
 
-    maybe_privkey_2 = get_privkey_from_k(
+    maybe_privkey_2 = get_privkey_from_k(dsa_pqg,
         message_set_to_signed_message(message_set_1), maybe_k)
 
     if maybe_privkey_1 == maybe_privkey_2:
@@ -61,9 +62,12 @@ def maybe_get_privkey_from_pair(message_set_1, message_set_2):
         return (False, None)
 
 
-def get_privkey_from_message_sets(pubkey, message_sets):
+def get_privkey_from_message_sets(dsa_pqg, pubkey, message_sets):
+    p, q, g = dsa_pqg
+
     for message_set_1, message_set_2 in itertools.combinations(message_sets, 2):
-        valid, maybe_privkey = maybe_get_privkey_from_pair(message_set_1, message_set_2)
+        valid, maybe_privkey = maybe_get_privkey_from_pair(
+            dsa_pqg, message_set_1, message_set_2)
 
         if valid and nt.modexp(g, maybe_privkey, p) == pubkey:
             return maybe_privkey
@@ -95,6 +99,8 @@ def parse_lines(lines):
 
 
 def test_get_privkey_from_message_sets():
+    dsa_pqg = STANDARD_DSA_PQG
+
     with open('challenge-data/44.txt', 'r') as fil:
         message_sets = parse_lines(fil.readlines())
 
@@ -111,7 +117,7 @@ def test_get_privkey_from_message_sets():
                   2971c3de5084cce04a2e147821""".translate(None, ' \n'), 16)
 
 
-    privkey = get_privkey_from_message_sets(pubkey, message_sets)
+    privkey = get_privkey_from_message_sets(dsa_pqg, pubkey, message_sets)
 
     assert (hashlib.sha1(binascii.hexlify(long_to_bytes(privkey))).hexdigest()
             == 'ca8f6f7c66fa362d40760d135b763eb8527d3d52')

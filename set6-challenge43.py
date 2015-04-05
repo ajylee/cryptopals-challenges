@@ -3,15 +3,16 @@ import hashlib
 import number_theory as nt
 import logging
 from Crypto.Util.number import long_to_bytes, bytes_to_long
-from my_dsa import (hash_fn, keygen, sign, verify,
-                    p, q, g, get_privkey_from_k)
+from my_dsa import (hash_fn, sign, verify,
+                    STANDARD_DSA_PQG, get_privkey_from_k)
 
 
-def solve_privkey(pubkey, signed_message):
+def solve_privkey(dsa_pqg, pubkey, signed_message):
+    p, q, g = dsa_pqg
     message, signature = signed_message
 
     for _guess_k in xrange(0, 2**16):
-        _maybe_privkey = get_privkey_from_k(signed_message, _guess_k)
+        _maybe_privkey = get_privkey_from_k(dsa_pqg, signed_message, _guess_k)
 
         if _guess_k % 1000 == 0:
             logging.info('Guessing k = {}'.format(_guess_k))
@@ -28,6 +29,8 @@ def solve_privkey(pubkey, signed_message):
 
 
 def test_solve_privkey():
+    dsa_pqg = STANDARD_DSA_PQG
+
     message = (
         'For those that envy a MC it can be hazardous to your health\n'
         'So be friendly, a matter of life and death, just like a etch-a-sketch\n')
@@ -45,18 +48,17 @@ def test_solve_privkey():
 
     signed = (message, signature)
 
-
     # check message, pubkey, signature copied correctly
     assert (bytes_to_long(hash_fn(message))
             == long('d2d0714f014a9784047eaeccf956520045c45265', 16))
-    assert verify(pubkey, signed)
+    assert verify(dsa_pqg, pubkey, signed)
 
 
     # solve and check
-    privkey = solve_privkey(pubkey, signed)
+    privkey = solve_privkey(dsa_pqg, pubkey, signed)
 
-    _, _maybe_signature = sign(privkey, message)
-    assert verify(pubkey, (message, _maybe_signature))
+    _, _maybe_signature = sign(dsa_pqg, privkey, message)
+    assert verify(dsa_pqg, pubkey, (message, _maybe_signature))
 
     assert (hashlib.sha1(binascii.hexlify(long_to_bytes(privkey))).hexdigest()
             == '0954edd5e0afe5542a4adf012611a91912a3ec16')

@@ -6,24 +6,27 @@ import number_theory as nt
 from bin_more import bit_count
 
 
-p = long("""
-         800000000000000089e1855218a0e7dac38136ffafa72eda7
-         859f2171e25e65eac698c1702578b07dc2a1076da241c76c6
-         2d374d8389ea5aeffd3226a0530cc565f3bf6b50929139ebe
-         ac04f48c3c84afb796d61e5a4f9a8fda812ab59494232c7d2
-         b4deb50aa18ee9e132bfa85ac4374d7f9091abc3d015efc87
-         1a584471bb1
-         """.translate(None, ' \n'), 16)
+_p = long("""
+          800000000000000089e1855218a0e7dac38136ffafa72eda7
+          859f2171e25e65eac698c1702578b07dc2a1076da241c76c6
+          2d374d8389ea5aeffd3226a0530cc565f3bf6b50929139ebe
+          ac04f48c3c84afb796d61e5a4f9a8fda812ab59494232c7d2
+          b4deb50aa18ee9e132bfa85ac4374d7f9091abc3d015efc87
+          1a584471bb1
+          """.translate(None, ' \n'), 16)
 
 # q is 20 bytes
-q = long('f4f47f05794b256174bba6e9b396a7707e563c5b', 16)
+_q = long('f4f47f05794b256174bba6e9b396a7707e563c5b', 16)
 
-g = long("""5958c9d3898b224b12672c0b98e06c60df923cb8bc999d119
-         458fef538b8fa4046c8db53039db620c094c9fa077ef389b5
-         322a559946a71903f990f1f7e0e025e2d7f7cf494aff1a047
-         0f5b64c36b625a097f1651fe775323556fe00b3608c887892
-         878480e99041be601a62166ca6894bdd41a7054ec89f756ba
-         9fc95302291""".translate(None, ' \n'), 16)
+_g = long("""5958c9d3898b224b12672c0b98e06c60df923cb8bc999d119
+          458fef538b8fa4046c8db53039db620c094c9fa077ef389b5
+          322a559946a71903f990f1f7e0e025e2d7f7cf494aff1a047
+          0f5b64c36b625a097f1651fe775323556fe00b3608c887892
+          878480e99041be601a62166ca6894bdd41a7054ec89f756ba
+          9fc95302291""".translate(None, ' \n'), 16)
+
+
+STANDARD_DSA_PQG = (_p, _q, _g)
 
 
 def hash_fn(message):
@@ -51,7 +54,8 @@ def _gen_kr(p, q, g):
             return k, r
 
 
-def keygen_general(p, q, g):
+def keygen(dsa_pqg):
+    p, q, g = dsa_pqg
     x = random_int(q)
     y = nt.modexp(g, x, p)
 
@@ -61,11 +65,7 @@ def keygen_general(p, q, g):
     return pubkey, privkey
 
 
-def keygen():
-    return keygen_general(p, q, g)
-
-
-def sign_general(dsa_pqg, privkey, message, show_k):
+def sign_plus(dsa_pqg, privkey, message, show_k):
     p, q, g = dsa_pqg
     x = privkey
 
@@ -85,11 +85,11 @@ def sign_general(dsa_pqg, privkey, message, show_k):
                 return (message, signature)
 
 
-def sign(privkey, message):
-    return sign_general((p, q, g), privkey, message, False)
+def sign(dsa_pqg, privkey, message):
+    return sign_plus(dsa_pqg, privkey, message, show_k=False)
 
 
-def verify_general(dsa_pqg, pubkey, (message, signature)):
+def verify(dsa_pqg, pubkey, (message, signature)):
     p, q, g = dsa_pqg
     y = pubkey
     r, s = signature
@@ -106,11 +106,7 @@ def verify_general(dsa_pqg, pubkey, (message, signature)):
     return v == r
 
 
-def verify(pubkey, signed_message):
-    return verify_general((p, q, g), pubkey, signed_message)
-
-
-def get_privkey_from_k((message, signature), k):
+def get_privkey_from_k(dsa_pqg, (message, signature), k):
     """
 
         (s * k) - H(msg)
@@ -118,6 +114,8 @@ def get_privkey_from_k((message, signature), k):
                 r
 
     """
+
+    p, q, g = dsa_pqg
 
     r, s = signature
 
@@ -132,23 +130,27 @@ def get_privkey_from_k((message, signature), k):
 # ========
 
 def test_sign_and_verify():
-    pubkey, privkey = keygen()
+    dsa_pqg = STANDARD_DSA_PQG
+
+    pubkey, privkey = keygen(dsa_pqg)
 
     message = 'hello'
 
-    signed = sign(privkey, message)
+    signed = sign(dsa_pqg, privkey, message)
 
-    assert verify(pubkey, signed)
+    assert verify(dsa_pqg, pubkey, signed)
 
 
-    pubkey_1, privkey_1 = keygen()
-    wrong_signed = sign(privkey_1, message)
+    pubkey_1, privkey_1 = keygen(STANDARD_DSA_PQG)
+    wrong_signed = sign(dsa_pqg, privkey_1, message)
 
-    assert not verify(pubkey, wrong_signed)
+    assert not verify(dsa_pqg, pubkey, wrong_signed)
 
 
 def test_get_privkey_from_k():
-    pubkey, privkey = keygen()
+    dsa_pqg = STANDARD_DSA_PQG
+
+    pubkey, privkey = keygen(dsa_pqg)
 
     #message = 'hello'
 
@@ -156,9 +158,9 @@ def test_get_privkey_from_k():
         'For those that envy a MC it can be hazardous to your health\n'
         'So be friendly, a matter of life and death, just like a etch-a-sketch\n')
 
-    signed, k = sign_general((p, q, g), privkey, message, show_k=True)
+    signed, k = sign_plus(dsa_pqg, privkey, message, show_k=True)
 
-    assert get_privkey_from_k(signed, k) == privkey
+    assert get_privkey_from_k(dsa_pqg, signed, k) == privkey
 
 
 if __name__ == '__main__':
