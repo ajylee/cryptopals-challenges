@@ -7,36 +7,15 @@ import number_theory as nt
 from my_rsa import (keygen, encrypt, decrypt,
                     long_to_bytes, bytes_to_long)
 
+from pkcs1 import pad, check_and_remove_padding
+
 BLOCK_SIZE = 1024 / 8  # 128 bytes
-
-
-def pad(asn1_hash):
-    num_ff = BLOCK_SIZE - len(asn1_hash) - 3
-    return chr(0) + chr(1) + num_ff * chr(0xff) + chr(0) + asn1_hash
-
-
-def check_and_remove_padding(plaintext_signature):
-    """If valid padding, removes padding and returns tuple (True, ASN.1 HASH)
-    Otherwise returns (False, None)"""
-
-    # NOTE: we cannot directly match the hash content using a regex group
-    # because of possible newline chars (\n).
-    pattern = chr(0) + chr(1) + chr(0xff) + '+' + chr(0)
-
-    r = re.search(pattern, plaintext_signature)
-
-    if not r:
-        return (False, None)
-    else:
-        pad_len = len(r.group(0))
-        asn1_hash = plaintext_signature[pad_len:]
-        return (True, asn1_hash)
 
 
 def sign(privkey, message):
     _hash = sha256(message).digest()
     asn1_hash = DerOctetString(_hash).encode()
-    padded = pad(asn1_hash)
+    padded = pad(asn1_hash, BLOCK_SIZE)
 
     return (message, encrypt(privkey, padded))
 
@@ -50,7 +29,8 @@ def _reinstate_initial_0s(plaintext_without_0s):
 def verify(pubkey, (message, signature)):
     plaintext = _reinstate_initial_0s(decrypt(pubkey, signature))
 
-    ok_padding, asn1_hash = check_and_remove_padding(plaintext)
+    ok_padding, asn1_hash = check_and_remove_padding(
+        plaintext, min_padding_string_len=1)
 
     if not ok_padding:
         return False
