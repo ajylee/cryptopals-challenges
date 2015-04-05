@@ -60,7 +60,7 @@ def keygen():
     return pubkey, privkey
 
 
-def sign(privkey, message):
+def sign_plus(privkey, message, show_k):
     x = privkey
 
     while True:
@@ -72,7 +72,15 @@ def sign(privkey, message):
 
         if s != 0: 
             signature = (r, s)
-            return (message, signature)
+
+            if show_k:
+                return (message, signature), k
+            else:
+                return (message, signature)
+
+
+def sign(privkey, message):
+    return sign_plus(privkey, message, False)
 
 
 def verify(pubkey, (message, signature)):
