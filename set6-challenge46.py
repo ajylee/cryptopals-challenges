@@ -1,6 +1,7 @@
 
 import base64
 import number_theory as nt
+import logging
 import toolz as tz
 from my_rsa import (keygen, encrypt, decrypt, BLOCK_SIZE,
                     long_to_bytes, bytes_to_long)
@@ -18,11 +19,23 @@ def parity_oracle(privkey):
 
 
 def average(a, b):
-    """Average of n in the form (int(n), n % 1.)"""
+    """Average of a,b in Split Form
+
+    E.g. n in Split Form is (int(n), n % 1.)"""
 
     f = ((a[0] + b[0]) % 2) / 2. + (a[1] + b[1]) / 2.
 
     return ((a[0] + b[0]) // 2 + int(f), f % 1.)
+
+
+def difference_as_float(a, b):
+    """Difference of a, b in Split Form
+
+    (see docstring for average)
+
+    """
+
+    return (a[0] - b[0]) + (a[1] - b[1])
 
 
 def solve_message(is_even, pubkey, ciphertext):
@@ -47,11 +60,11 @@ def solve_message(is_even, pubkey, ciphertext):
         else:
             lbound = mid_point
                 
-        print repr(long_to_bytes(ubound[0]))
+        logging.info(repr(long_to_bytes(ubound[0])))
 
-    assert (ubound[0] - lbound[0]) + (ubound[1] - ubound[0]) < 1.
+    assert difference_as_float(ubound, lbound) < 1.
 
-    return long_to_bytes(lbound[0] + int(lbound[1] > 0))
+    return long_to_bytes(ubound[0])
     
 
 def test_solve_message():
@@ -65,8 +78,10 @@ def test_solve_message():
 
     oracle = parity_oracle(privkey)
 
-    print repr(solve_message(oracle, pubkey, ciphertext))
+    assert solve_message(oracle, pubkey, ciphertext) == message
     
 
 if __name__ == '__main__':
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.INFO)
     test_solve_message()
