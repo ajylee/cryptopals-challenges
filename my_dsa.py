@@ -5,6 +5,7 @@ from Crypto.Util.number import getPrime, long_to_bytes, bytes_to_long
 import number_theory as nt
 from bin_more import bit_count
 
+
 p = long("""
          800000000000000089e1855218a0e7dac38136ffafa72eda7
          859f2171e25e65eac698c1702578b07dc2a1076da241c76c6
@@ -13,7 +14,7 @@ p = long("""
          b4deb50aa18ee9e132bfa85ac4374d7f9091abc3d015efc87
          1a584471bb1
          """.translate(None, ' \n'), 16)
- 
+
 # q is 20 bytes
 q = long('f4f47f05794b256174bba6e9b396a7707e563c5b', 16)
 
@@ -39,6 +40,7 @@ def random_int(upper_bound):
         if nn != 0:
             return nn
 
+
 def _gen_kr():
     while True:
         k = random_int(q)
@@ -52,13 +54,15 @@ def keygen():
     x = random_int(q)
     y = nt.modexp(g, x, p)
 
-    pubkey = (p, q, g, y)
+    pubkey = y
     privkey = x
 
     return pubkey, privkey
 
 
 def sign(privkey, message):
+    x = privkey
+
     while True:
         k, r = _gen_kr()
 
@@ -72,7 +76,19 @@ def sign(privkey, message):
 
 
 def verify(pubkey, (message, signature)):
-    return True
+    y = pubkey
+    r, s = signature
+
+    if not ((0 < s < q) and (0 < r < q)):
+        return False
+
+    w = nt.invmod(s, q)
+    _hash = long(hash_fn(message).hexdigest(), 16)
+    u1 = _hash * w % q
+    u2 = r * w % q
+    v = nt.modexp(g, u1, p) * nt.modexp(y, u2, p) % p % q
+
+    return v == r
 
 
 def test_sign_and_verify():
