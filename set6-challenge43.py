@@ -7,24 +7,6 @@ from my_dsa import (hash_fn, keygen, sign_plus, sign, verify,
                     p, q, g)
 
 
-def get_privkey_from_k((message, signature), k):
-    """
-
-        (s * k) - H(msg)
-    x = ----------------  mod q
-                r
-
-    """
-
-    r, s = signature
-
-    _hash = bytes_to_long(hash_fn(message))
-
-    x = nt.invmod(r, q) * ((s * k) - _hash) % q
-
-    return x
-
-
 def solve_privkey(pubkey, signed_message):
     message, signature = signed_message
 
@@ -43,20 +25,6 @@ def solve_privkey(pubkey, signed_message):
                 return _maybe_privkey
     else:
         raise ValueError, 'no valid k found'
-
-
-def test_get_x_from_k():
-    pubkey, privkey = keygen()
-
-    #message = 'hello'
-
-    message = (
-        'For those that envy a MC it can be hazardous to your health\n'
-        'So be friendly, a matter of life and death, just like a etch-a-sketch\n')
-
-    signed, k = sign_plus(privkey, message, show_k=True)
-
-    assert get_privkey_from_k(signed, k) == privkey
 
 
 def test_solve_privkey():
@@ -97,7 +65,5 @@ def test_solve_privkey():
 if __name__ == '__main__':
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
-
-    test_get_x_from_k()
 
     test_solve_privkey()

@@ -71,7 +71,7 @@ def sign_plus(privkey, message, show_k):
 
         s = nt.invmod(k, q) * (_hash + x * r) % q
 
-        if s != 0: 
+        if s != 0:
             signature = (r, s)
 
             if show_k:
@@ -100,6 +100,27 @@ def verify(pubkey, (message, signature)):
     return v == r
 
 
+def get_privkey_from_k((message, signature), k):
+    """
+
+        (s * k) - H(msg)
+    x = ----------------  mod q
+                r
+
+    """
+
+    r, s = signature
+
+    _hash = bytes_to_long(hash_fn(message))
+
+    x = nt.invmod(r, q) * ((s * k) - _hash) % q
+
+    return x
+
+
+# Testing
+# ========
+
 def test_sign_and_verify():
     pubkey, privkey = keygen()
 
@@ -116,5 +137,20 @@ def test_sign_and_verify():
     assert not verify(pubkey, wrong_signed)
 
 
+def test_get_privkey_from_k():
+    pubkey, privkey = keygen()
+
+    #message = 'hello'
+
+    message = (
+        'For those that envy a MC it can be hazardous to your health\n'
+        'So be friendly, a matter of life and death, just like a etch-a-sketch\n')
+
+    signed, k = sign_plus(privkey, message, show_k=True)
+
+    assert get_privkey_from_k(signed, k) == privkey
+
+
 if __name__ == '__main__':
     test_sign_and_verify()
+    test_get_privkey_from_k()
