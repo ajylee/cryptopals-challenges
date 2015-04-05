@@ -3,7 +3,7 @@ import math as ma
 import hashlib
 from Crypto.Util.number import getPrime, long_to_bytes, bytes_to_long
 import number_theory as nt
-from bin_more import bit_count
+from bin_more import num_bits
 
 
 _p = long("""
@@ -37,7 +37,8 @@ def random_int(upper_bound):
     # modexp of random bytes
     # should be cryptographically secure
 
-    num_bytes = bit_count(upper_bound) // 8 + int(upper_bound % 8 != 0)
+    _num_bits = num_bits(upper_bound)
+    num_bytes = _num_bits // 8 + int(_num_bits % 8 != 0)
 
     while True:
         nn = nt.modexp(bytes_to_long(os.urandom(num_bytes - 1)), 9, upper_bound)
