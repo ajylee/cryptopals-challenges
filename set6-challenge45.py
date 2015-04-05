@@ -71,10 +71,14 @@ def test_g_as_p_plus_1():
     z = random_int(p)
     logging.info('Randomly selected z = {}'.format(z))
 
-    message = Crypto.Random.new().read(30)
+    messages = [Crypto.Random.new().read(30),
+                'Hello, world',
+                'Goodbye, world']
+
     signature = gen_sig_for_g_as_p_plus_1(dsa_pqg, pubkey, z)
 
-    assert verify_plus(dsa_pqg, pubkey, (message, signature), strict=False)
+    for message in messages:
+        assert verify_plus(dsa_pqg, pubkey, (message, signature), strict=False)
 
     logging.info('From pubkey and z, generated valid signature {}'.format(signature))
 
