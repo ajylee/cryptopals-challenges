@@ -3,7 +3,7 @@ import math as ma
 import hashlib
 from Crypto.Util.number import getPrime, long_to_bytes, bytes_to_long
 import number_theory as nt
-from bin_more import num_bits
+from my_random import urandom_int
 
 
 _p = long("""
@@ -33,22 +33,9 @@ def hash_fn(message):
     return hashlib.sha1(message).digest()
 
 
-def random_int(upper_bound):
-    # modexp of random bytes
-    # should be cryptographically secure
-
-    _num_bits = num_bits(upper_bound)
-    num_bytes = _num_bits // 8 + int(_num_bits % 8 != 0)
-
-    while True:
-        nn = nt.modexp(bytes_to_long(os.urandom(num_bytes - 1)), 9, upper_bound)
-        if nn != 0:
-            return nn
-
-
 def _gen_kr(p, q, g, strict):
     while True:
-        k = random_int(q)
+        k = urandom_int(q)
         r = nt.modexp(g, k, p) % q
 
         if r != 0 or (not strict):
@@ -57,7 +44,7 @@ def _gen_kr(p, q, g, strict):
 
 def keygen(dsa_pqg):
     p, q, g = dsa_pqg
-    x = random_int(q)
+    x = urandom_int(q)
     y = nt.modexp(g, x, p)
 
     pubkey = y

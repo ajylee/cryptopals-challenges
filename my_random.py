@@ -1,4 +1,23 @@
+import os
 import toolz as tz
+from bin_more import num_bits
+import number_theory as nt
+import binascii
+
+
+def urandom_int(upper_bound):
+    # modexp of random bytes
+    # should be cryptographically secure
+
+    _num_bits = num_bits(upper_bound)
+    num_bytes = _num_bits // 8 + int(_num_bits % 8 != 0)
+
+    while True:
+        aa = long(binascii.hexlify(os.urandom(num_bytes - 1)), 16)
+        nn = nt.modexp(aa, 9, upper_bound)
+        if nn != 0:
+            return nn
+
 
 def _lowest_32_bits(n):
     return ((1 << 32) - 1) & n

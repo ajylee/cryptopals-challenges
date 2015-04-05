@@ -7,8 +7,9 @@ import Crypto.Random
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 
 import number_theory as nt
+from my_random import urandom_int
 from my_dsa import (keygen, hash_fn, sign_plus, verify_plus,
-                    STANDARD_DSA_PQG, get_privkey_from_k, random_int)
+                    STANDARD_DSA_PQG, get_privkey_from_k)
 
 
 def gen_sig_for_g_as_p_plus_1(dsa_pqg, pubkey, z):
@@ -48,7 +49,7 @@ def test_g_as_0():
                  'and it still verifies to True')
 
     random_signed_message = (Crypto.Random.new().read(30),
-                             (0, random_int(dsa_pqg[0])))
+                             (0, urandom_int(dsa_pqg[0])))
 
     logging.info('message = {}'.format(repr(random_signed_message[0])))
     logging.info('signature = {}'.format(random_signed_message[1]))
@@ -68,7 +69,7 @@ def test_g_as_p_plus_1():
 
     pubkey, privkey = keygen(dsa_pqg)
 
-    z = random_int(p)
+    z = urandom_int(p)
     logging.info('Randomly selected z = {}'.format(z))
 
     messages = [Crypto.Random.new().read(30),
