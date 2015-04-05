@@ -89,12 +89,12 @@ def sign(dsa_pqg, privkey, message):
     return sign_plus(dsa_pqg, privkey, message, strict=True, show_k=False)
 
 
-def verify(dsa_pqg, pubkey, (message, signature)):
+def verify_plus(dsa_pqg, pubkey, (message, signature), strict):
     p, q, g = dsa_pqg
     y = pubkey
     r, s = signature
 
-    if not ((0 < s < q) and (0 < r < q)):
+    if strict and not ((0 < s < q) and (0 < r < q)):
         return False
 
     w = nt.invmod(s, q)
@@ -104,6 +104,10 @@ def verify(dsa_pqg, pubkey, (message, signature)):
     v = nt.modexp(g, u1, p) * nt.modexp(y, u2, p) % p % q
 
     return v == r
+
+
+def verify(dsa_pqg, pubkey, (message, signature)):
+    return verify_plus(dsa_pqg, pubkey, (message, signature), strict=True)
 
 
 def get_privkey_from_k(dsa_pqg, (message, signature), k):
