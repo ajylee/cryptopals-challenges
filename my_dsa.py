@@ -26,7 +26,8 @@ g = long("""5958c9d3898b224b12672c0b98e06c60df923cb8bc999d119
          9fc95302291""".translate(None, ' \n'), 16)
 
 
-hash_fn = hashlib.sha1
+def hash_fn(message):
+    return hashlib.sha1(message).digest()
 
 
 def random_int(upper_bound):
@@ -66,7 +67,7 @@ def sign_plus(privkey, message, show_k):
     while True:
         k, r = _gen_kr()
 
-        _hash = long(hash_fn(message).hexdigest(), 16)
+        _hash = bytes_to_long(hash_fn(message))
 
         s = nt.invmod(k, q) * (_hash + x * r) % q
 
@@ -91,7 +92,7 @@ def verify(pubkey, (message, signature)):
         return False
 
     w = nt.invmod(s, q)
-    _hash = long(hash_fn(message).hexdigest(), 16)
+    _hash = bytes_to_long(hash_fn(message))
     u1 = _hash * w % q
     u2 = r * w % q
     v = nt.modexp(g, u1, p) * nt.modexp(y, u2, p) % p % q
