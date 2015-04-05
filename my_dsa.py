@@ -42,7 +42,7 @@ def random_int(upper_bound):
             return nn
 
 
-def _gen_kr():
+def _gen_kr(p, q, g):
     while True:
         k = random_int(q)
         r = nt.modexp(g, k, p) % q
@@ -51,7 +51,7 @@ def _gen_kr():
             return k, r
 
 
-def keygen():
+def keygen_general(p, q, g):
     x = random_int(q)
     y = nt.modexp(g, x, p)
 
@@ -61,11 +61,16 @@ def keygen():
     return pubkey, privkey
 
 
-def sign_plus(privkey, message, show_k):
+def keygen():
+    return keygen_general(p, q, g)
+
+
+def sign_general(dsa_pqg, privkey, message, show_k):
+    p, q, g = dsa_pqg
     x = privkey
 
     while True:
-        k, r = _gen_kr()
+        k, r = _gen_kr(p, q, g)
 
         _hash = bytes_to_long(hash_fn(message))
 
@@ -81,10 +86,11 @@ def sign_plus(privkey, message, show_k):
 
 
 def sign(privkey, message):
-    return sign_plus(privkey, message, False)
+    return sign_general((p, q, g), privkey, message, False)
 
 
-def verify(pubkey, (message, signature)):
+def verify_general(dsa_pqg, pubkey, (message, signature)):
+    p, q, g = dsa_pqg
     y = pubkey
     r, s = signature
 
@@ -98,6 +104,10 @@ def verify(pubkey, (message, signature)):
     v = nt.modexp(g, u1, p) * nt.modexp(y, u2, p) % p % q
 
     return v == r
+
+
+def verify(pubkey, signed_message):
+    return verify_general((p, q, g), pubkey, signed_message)
 
 
 def get_privkey_from_k((message, signature), k):
@@ -146,7 +156,7 @@ def test_get_privkey_from_k():
         'For those that envy a MC it can be hazardous to your health\n'
         'So be friendly, a matter of life and death, just like a etch-a-sketch\n')
 
-    signed, k = sign_plus(privkey, message, show_k=True)
+    signed, k = sign_general((p, q, g), privkey, message, show_k=True)
 
     assert get_privkey_from_k(signed, k) == privkey
 
