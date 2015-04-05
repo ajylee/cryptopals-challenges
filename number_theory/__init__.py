@@ -1,1 +1,1 @@
-from num_tools import modexp, invmod, long_root
+from num_tools import modexp, invmod, long_root, InvModException

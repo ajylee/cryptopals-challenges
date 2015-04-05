@@ -75,10 +75,17 @@ def extended_gcd(aa, bb):
     return (last_remainder, last_x * _sgn(aa), last_y * _sgn(bb))
 
 
+class InvModException(Exception):
+    pass
+
+
 def invmod(a, n):
     # adapted from haskell and python versions in Rosetta Code
     g, x, y = extended_gcd(a, n)
-    assert g == 1
+
+    if g != 1:
+        raise InvModException
+
     return x % n
 
 
