@@ -2,6 +2,7 @@ from __future__ import division
 import binascii
 import random
 import logging
+from itertools import count
 import toolz as tz
 
 from Crypto.Util.number import long_to_bytes, bytes_to_long
@@ -16,9 +17,6 @@ logger = logging.getLogger(__name__)
 def ceil_div(nn, dd):
     div, mod = divmod(nn, dd)
     return div + int(mod != 0)
-
-
-def inc(x): return x + 1
 
 
 def _reinstate_initial_0s(plaintext_without_0s, block_size):
@@ -71,7 +69,7 @@ def search_s_1(oracle, pubkey, B, c_0):
     # step_2a
     e, n = pubkey
 
-    for s_1 in tz.iterate(inc, ceil_div(n, 3*B)):
+    for s_1 in count(ceil_div(n, 3*B)):
         if s_1 % 5000 == 0:
             logger.info('Searching for s_1 ... {}'
                         .format(s_1))
@@ -84,7 +82,7 @@ def search_s_1(oracle, pubkey, B, c_0):
 def search_with_multiple_intervals_left(oracle, pubkey, c_0, prev_s):
     e, n = pubkey
 
-    for s_i in tz.iterate(inc, prev_s + 1):
+    for s_i in count(prev_s + 1):
         if s_i % 5000 == 0:
             logger.info('Searching with multiple intervals for s_i ... {}'
                         .format(s_i))
@@ -98,7 +96,7 @@ def search_with_one_interval_left(oracle, pubkey, B, c_0, prev_s, (a, b)):
 
     r_lbound = ceil_div(2 * (b*prev_s - 2*B), n)
 
-    for r_i in tz.iterate(inc, r_lbound):
+    for r_i in count(r_lbound):
         s_lbound, s_ubound = (ceil_div(2*B + r_i*n, b),
                               ceil_div(3*B + r_i*n, a))
 
@@ -111,7 +109,7 @@ def search_with_one_interval_left(oracle, pubkey, B, c_0, prev_s, (a, b)):
 # ======
 
 def long_xrange(initial, final):
-    for ii in tz.iterate(inc, initial):
+    for ii in count(initial):
         if ii < final:
             yield ii
         else:
