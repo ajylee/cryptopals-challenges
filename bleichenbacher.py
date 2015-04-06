@@ -59,6 +59,8 @@ def init_s_0_c_0(oracle, pubkey, c):
 
 
 def derive_s_1_M_1(oracle, pubkey, B, c_0):
+    logger.info('derive s_1, M_1')
+
     e, n = pubkey
 
     s_1 = search_s_1(oracle, pubkey, B, c_0)
@@ -153,7 +155,6 @@ def M_i_of_s_i(B, n, s_i, prev_M):
 # Put it together
 # ================
 
-
 def next_s_M(oracle, pubkey, B, c_0, (s_j, M_j)):
     e, n = pubkey
 
@@ -168,22 +169,29 @@ def next_s_M(oracle, pubkey, B, c_0, (s_j, M_j)):
     return (s_jp1, M_jp1)
 
 
+def maybe_plaintext(n, block_size, s_0, M_i):
+    if len(M_i) == 1:
+
+        a, b = tz.first(M_i)
+
+        if a == b:
+            plaintext_int = a * nt.invmod(s_0, n) % n
+            return True, _reinstate_initial_0s(long_to_bytes(plaintext_int),
+                                               block_size)
+
+    return False, None
+
+
 def search(oracle, block_size, pubkey, ciphertext):
     e, n = pubkey
     B = derive_B(block_size)
 
     s_0, c_0 = init_s_0_c_0(oracle, pubkey, bytes_to_long(ciphertext))
-
-    logger.info('derive_s_1_M_1')
     s_1, M_1 = derive_s_1_M_1(oracle, pubkey, B, c_0)
 
     _next_s_M = tz.partial(next_s_M, oracle, pubkey, B, c_0)
 
     for s_i, M_i in tz.iterate(_next_s_M, (s_1, M_1)):
-        if len(M_i) == 1:
-
-            a, b = tz.first(M_i)
-
-            if a == b:
-                plaintext_int = a * nt.invmod(s_0, n) % n
-                return _reinstate_initial_0s(long_to_bytes(plaintext_int), block_size)
+        success, plaintext = maybe_plaintext(n, block_size, s_0, M_i)
+        if success:
+            return plaintext
