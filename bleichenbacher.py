@@ -65,26 +65,28 @@ def derive_B(block_size):
     return 2 ** (8 * (block_size - 2))
 
 
+# Step 2; Search for pkcs1 conformance
+# ======================================
+
 def search_s_1(oracle, pubkey, B, c_0):
     # step_2a
     e, n = pubkey
-    return search_with_multiple_intervals_left(oracle, pubkey, c_0,
-                                               start = ceil_div(n, 3*B))
+    return search_s_i_linear(oracle, pubkey, c_0,
+                             start = ceil_div(n, 3*B))
 
 
-def search_with_multiple_intervals_left(oracle, pubkey, c_0, start):
+def search_s_i_linear(oracle, pubkey, c_0, start):
     e, n = pubkey
 
     for s_i in count(start):
         if s_i % 5000 == 0:
-            logger.info('Searching with multiple intervals for s_i ... {}'
-                        .format(s_i))
+            logger.info('Searching linearly for s_i ... {}' .format(s_i))
         if oracle(long_to_bytes(c_0 * nt.modexp(s_i, e, n) % n)):
             logger.info('Found s_i = {}'.format(s_i))
             return s_i
 
 
-def search_with_one_interval_left(oracle, pubkey, B, c_0, prev_s, (a, b)):
+def search_s_i_logarithmic(oracle, pubkey, B, c_0, prev_s, (a, b)):
     e, n = pubkey
 
     r_lbound = ceil_div(2 * (b*prev_s - 2*B), n)
@@ -150,10 +152,10 @@ def next_s_M(oracle, pubkey, B, c_0, (s_j, M_j)):
     e, n = pubkey
 
     if len(M_j) > 1:
-        s_jp1 = search_with_multiple_intervals_left(oracle, pubkey, c_0, s_j + 1)
+        s_jp1 = search_s_i_linear(oracle, pubkey, c_0, s_j + 1)
     else:
-        s_jp1 = search_with_one_interval_left(oracle, pubkey,
-                                              B, c_0, s_j, tz.first(M_j))
+        s_jp1 = search_s_i_logarithmic(oracle, pubkey,
+                                       B, c_0, s_j, tz.first(M_j))
 
     M_jp1 = M_i_of_s_i(B, n, s_jp1, M_j)
 
