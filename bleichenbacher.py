@@ -72,38 +72,6 @@ def search_with_one_interval_left(oracle, pubkey, c_0, (a, b)):
         if oracle(c_0 * nt.modexp(s_i, e, n) % n):
             return s_i
 
-
-def search(oracle, block_size, pubkey, ciphertext):
-    e, n = pubkey
-
-    B = num_free_bits(block_size)
-
-    s_0, c_0 = blinding(oracle, pubkey, ciphertext)
-
-    s = [0, search_s_1(pubkey, c_0, B)]
-    M = [(2*B, 3*B - 1), M_i_of_s_i(B, n, s[1])]
-
-    while len(M[-1]) >= 2:
-        prev_M = M[-1]
-
-        s_i = search_with_multiple_intervals_left(oracle, pubkey, c_0, s[-1])
-
-        s.append(s_i)
-        M.append(M_i_of_si_i(B, n, s_i, prev_M))
-
-    while True:
-        s_i = search_with_one_interval_left(oracle, pubkey, c_0, M[-1][0])
-        M_i = M_i_of_si_i(B, n, s_i, prev_M)
-
-        s.append(s_i)
-        M.append(M_i)
-
-        a, b = M_i[0]
-
-        if a == b:
-            return a * nt.invmod(s_0, n) % n
-
-
 # eqn 3
 # ======
 
@@ -124,3 +92,34 @@ def M_i_of_s_i(B, n, s_i, prev_M):
                 (b * s_i - 2*B)     // n + 1)   # TODO: check division
 
         for (a, b) in prev_M))
+
+
+def next_s_M(oracle, block_size, pubkey, c_0, (s_j, M_j)):
+    e, n = pubkey
+    B = num_free_bits(block_size)
+
+    if len(M_j) > 1:
+        s_jp1 = search_with_multiple_intervals_left(oracle, pubkey, c_0, s_j)
+    else:
+        s_jp1 = search_with_one_interval_left(oracle, pubkey, c_0, M_j)
+
+    return (s_jp1, M_i_of_s_i(B, n, s_jp1, M_j))
+
+
+def search(oracle, block_size, pubkey, ciphertext):
+    e, n = pubkey
+    B = num_free_bits(block_size)
+
+    s_0, c_0 = blinding(oracle, pubkey, ciphertext)
+    M_0 = (2*B, 3*B - 1)
+
+    s_1 = search_s_1(pubkey, c_0, B)
+    M_1 = M_i_of_s_i(B, n, s_1, M_0)
+
+    _next_s_M = tz.partial(next_s_M, oracle, block_size, pubkey, c_0)
+
+    for s_i, M_i in tz.iterate(_next_s_M, (s_1, M_1)):
+        if len(M_i) == 0 and a, b = M_i[0]
+
+        if a == b:
+            return a * nt.invmod(s_0, n) % n
