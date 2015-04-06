@@ -3,7 +3,6 @@ import base64
 from random import randint
 from Crypto.Cipher import AES
 
-import gen
 from block_crypto import random_str, pad, chunks
 
 from set1_challenge6 import hamming, average_hamming

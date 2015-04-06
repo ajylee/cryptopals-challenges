@@ -2,7 +2,6 @@
 from random import randint
 from Crypto.Cipher import AES
 
-import gen
 from block_crypto import CBC, random_str, pad, chunks
 
 from set1_challenge6 import average_hamming

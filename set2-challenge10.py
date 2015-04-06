@@ -3,8 +3,6 @@ import toolz as tz
 import base64
 import os.path as osp
 
-
-import gen
 from block_crypto import CBC
 from set1_challenge6 import chunks
 
@@ -21,7 +19,7 @@ def test_cipher():
 
 
 def solve():
-    with open(osp.join(gen.datadir, '10.txt')) as f:
+    with open('challenge-data/10.txt') as f:
         strn = base64.b64decode(f.read())
 
     key = b'YELLOW SUBMARINE'
