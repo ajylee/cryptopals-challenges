@@ -1,12 +1,10 @@
+import logging
 
 import pkcs1
 from my_rsa import keygen, encrypt, BLOCK_SIZE
-from bleichenbacher import pkcs1_oracle
+from bleichenbacher import pkcs1_oracle, search
 
-BLOCK_SIZE = 256
-
-def recover_plaintext(oracle, pubkey, ciphertext):
-    pass
+BLOCK_SIZE = 256 // 8
 
 
 def test_recover_plaintext():
@@ -14,8 +12,17 @@ def test_recover_plaintext():
 
     pubkey, privkey = keygen(BLOCK_SIZE)
 
-    ciphertext = encrypt(pubkey, pkcs1.pad(plaintext))
+    ciphertext = encrypt(pubkey, pkcs1.pad(plaintext, BLOCK_SIZE))
 
     _oracle = pkcs1_oracle(privkey)
 
-    assert recover_plaintext(_oracle, pubkey, ciphertext) == plaintext
+    assert search(_oracle, BLOCK_SIZE, pubkey, ciphertext) == plaintext
+
+
+if __name__ == '__main__':
+    import bleichenbacher
+    logging.basicConfig()
+    bleichenbacher.logger.setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.DEBUG)
+
+    test_recover_plaintext()
