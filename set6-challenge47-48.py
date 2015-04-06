@@ -6,7 +6,7 @@ from bleichenbacher import pkcs1_oracle, search
 
 
 def recover_plaintext_test_tool(block_size):
-    plaintext =  "kick it, CC"
+    plaintext = "kick it, CC"
 
     pubkey, privkey = keygen(block_size)
 
@@ -20,7 +20,7 @@ def recover_plaintext_test_tool(block_size):
         search(_oracle, block_size, pubkey, ciphertext),
         chr(2))
 
-    
+
     assert solution == plaintext, solution
 
     logging.info('solution matches plaintext')

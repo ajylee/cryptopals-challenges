@@ -20,14 +20,6 @@ def ceil_div(nn, dd):
 def inc(x): return x + 1
 
 
-def greatest_int_below_div(nn, dd):
-    _floor = nn // dd
-    if nn % dd == 0:
-        return _floor - 1
-    else:
-        return _floor
-
-
 def _reinstate_initial_0s(plaintext_without_0s, block_size):
     # NOTE: The (big-endian) decrypted block has its initial zeros removed.
     return ((block_size - len(plaintext_without_0s)) * chr(0)
@@ -70,7 +62,7 @@ def derive_s_1_M_1(oracle, pubkey, B, c_0):
 
 
 def derive_B(block_size):
-    """Number of bits after the 0x00 and 0x01 bytes"""
+    """2 to the number of bits after the 0x00 and 0x02 bytes"""
     return 2 ** (8 * (block_size - 2))
 
 
