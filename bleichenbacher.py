@@ -59,7 +59,7 @@ def init_s_0_c_0(oracle, pubkey, c):
 
 
 def derive_s_1_M_1(oracle, pubkey, B, c_0):
-    logger.info('derive s_1, M_1')
+    logger.info('Derive s_1, M_1')
 
     e, n = pubkey
 
@@ -126,13 +126,13 @@ def M_i_abr(B, n, s_i, a, b, r):
 
 def log_and_check_M(M_im1, M_i):
     len_M_i = len(M_i)
+    len_M_im1 = len(M_im1)
 
     assert len_M_i > 0
 
-    if len_M_i > 1:
-        logger.info("{} intervals left".format(len_M_i))
-    elif len_M_i == 1 and len(M_im1) > 1:
-        logger.info("Reached single interval")
+    if len_M_i < len_M_im1:
+        logger.info("Num intervals reduced {} -> {}"
+                    .format(len_M_im1, len_M_i))
 
 
 def M_i_of_s_i(B, n, s_i, prev_M):
