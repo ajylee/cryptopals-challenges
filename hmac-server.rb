@@ -39,15 +39,17 @@ configure do
 end
 
 
-def my_hmac(key, message)
-  # could also use Digest::HMAC
+def my_hmac_hexdigest(digest, key, message)
+  # Should be same as Digest::HMAC.hexdigest
 
-  digest = OpenSSL::Digest.new('sha1')
+  block_length = digest.block_length
 
-  o_key_pad = ("\x5c" * BLOCK_SIZE) ^ key
-  i_key_pad = ("\x36" * BLOCK_SIZE) ^ key
-  return digest.digest(
-       o_key_pad ^ digest.digest(i_key_pad ^ message))
+  key_block = key + "\x00" * (block_length - key.length)
+
+  o_key_pad = ("\x5c" * block_length) ^ key_block
+  i_key_pad = ("\x36" * block_length) ^ key_block
+  return digest.hexdigest(
+       o_key_pad + digest.digest(i_key_pad + message))
 end
 
 
@@ -75,7 +77,7 @@ get '/test' do
   file, signature = params[:file], params[:signature]
 
   digest = OpenSSL::Digest.new('sha1')
-  md_hash = OpenSSL::HMAC.hexdigest(digest, settings.key, File.read(file))
+  md_hash = my_hmac_hexdigest(digest, settings.key, File.read(file))
 
   logger.info("actual digest: #{md_hash}")
 
