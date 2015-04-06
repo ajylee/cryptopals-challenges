@@ -183,7 +183,7 @@ def first_successful_result(iterable):
                     in iterable if success)
 
 
-def search(oracle, block_size, pubkey, ciphertext):
+def recover_plaintext(oracle, block_size, pubkey, ciphertext):
     e, n = pubkey
     B = derive_B(block_size)
 

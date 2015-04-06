@@ -2,7 +2,7 @@ import logging
 
 import pkcs1
 from my_rsa import keygen, encrypt, BLOCK_SIZE
-from bleichenbacher import pkcs1_oracle, search
+from bleichenbacher import pkcs1_oracle, recover_plaintext
 
 
 def recover_plaintext_test_tool(block_size):
@@ -17,7 +17,7 @@ def recover_plaintext_test_tool(block_size):
 
     assert _oracle(ciphertext)
 
-    recovered = search(
+    recovered = recover_plaintext(
         _oracle, block_size, pubkey, ciphertext)
 
     assert recovered == padded, repr(recovered)
