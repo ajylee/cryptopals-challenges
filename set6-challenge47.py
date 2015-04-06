@@ -14,13 +14,18 @@ def test_recover_plaintext():
 
     pubkey, privkey = memo(__name__ + '.keygen', lambda : keygen(BLOCK_SIZE))
 
-    ciphertext = encrypt(pubkey, pkcs1.pad(plaintext, BLOCK_SIZE))
+    ciphertext = encrypt(pubkey, pkcs1.pad(plaintext, chr(2), BLOCK_SIZE))
 
     _oracle = pkcs1_oracle(privkey, BLOCK_SIZE)
 
     assert _oracle(ciphertext)
 
-    assert search(_oracle, BLOCK_SIZE, pubkey, ciphertext) == plaintext
+    ok_padding, solution = pkcs1.check_and_remove_padding(
+        search(_oracle, BLOCK_SIZE, pubkey, ciphertext),
+        chr(2))
+
+    
+    assert solution == plaintext, solution
 
 
 if __name__ == '__main__':
