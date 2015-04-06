@@ -22,7 +22,7 @@ def recover_plaintext_test_tool(block_size):
 
     assert recovered == padded, repr(recovered)
 
-    logging.info('solution matches plaintext')
+    logging.info('Recovered padded plaintext matches original.')
 
 
 def test_recover_plaintext_47():
