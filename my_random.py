@@ -2,6 +2,7 @@ import os
 import toolz as tz
 from bin_more import num_bits
 import number_theory as nt
+from number_theory.num_tools import ceil_div
 import binascii
 
 
@@ -10,7 +11,7 @@ def urandom_int(upper_bound):
     # should be cryptographically secure
 
     _num_bits = num_bits(upper_bound)
-    num_bytes = _num_bits // 8 + int(_num_bits % 8 != 0)
+    num_bytes = ceil_div(_num_bits, 8)
 
     while True:
         aa = long(binascii.hexlify(os.urandom(num_bytes - 1)), 16)
