@@ -15,7 +15,7 @@ BLOCK_SIZE = 1024 / 8  # 128 bytes
 def sign(privkey, message):
     _hash = sha256(message).digest()
     asn1_hash = DerOctetString(_hash).encode()
-    padded = pad(asn1_hash, BLOCK_SIZE)
+    padded = pad(asn1_hash, chr(1), BLOCK_SIZE)
 
     return (message, encrypt(privkey, padded))
 
@@ -30,7 +30,7 @@ def verify(pubkey, (message, signature)):
     plaintext = _reinstate_initial_0s(decrypt(pubkey, signature))
 
     ok_padding, asn1_hash = check_and_remove_padding(
-        plaintext, min_padding_string_len=1)
+        plaintext, second_byte=chr(1), min_padding_string_len=1)
 
     if not ok_padding:
         return False
