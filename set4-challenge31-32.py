@@ -140,13 +140,8 @@ def stats(timer):
 def solve_hash_chall32(port, filename, starting_bytes=''):
     def base_oracle(h): return url_get(port, filename, binascii.hexlify(h))
 
-    #base_necessary_trials, significant_interval = stats(
-    #    lambda h: base_oracle(h)[1])
-
-    #base_necessary_trials, significant_interval = 2, 0.003
     significant_interval = 0.0035
-    num_trials = lambda ii: max(3, ii)
-    #num_trials = lambda ii: (3 + int(ma.ceil(ii * .8)))
+    num_trials = lambda ii: max(3, int(round(1.5 * ii)))
 
     if starting_bytes:
         curr_hash = bytearray(starting_bytes + '\x00' * (-len(starting_bytes) % HMAC_SIZE))
