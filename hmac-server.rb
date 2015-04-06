@@ -4,7 +4,6 @@ require 'openssl'
 require 'securerandom'
 require 'sinatra'
 
-BLOCK_SIZE = 20
 
 class String
   def ^(other)
@@ -32,7 +31,7 @@ end
 
 
 configure do
-  #set :key, SecureRandom.random_bytes(BLOCK_SIZE)
+  #set :key, SecureRandom.random_bytes(64)
   set :key, 'abcd'
   set :port, 9567
   set :sleep_time, 0.050
