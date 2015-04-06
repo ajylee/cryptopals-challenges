@@ -7,21 +7,20 @@ from bleichenbacher import pkcs1_oracle, search
 
 def recover_plaintext_test_tool(block_size):
     plaintext = "kick it, CC"
+    padded = pkcs1.pad(plaintext, chr(2), block_size)
 
     pubkey, privkey = keygen(block_size)
 
-    ciphertext = encrypt(pubkey, pkcs1.pad(plaintext, chr(2), block_size))
+    ciphertext = encrypt(pubkey, padded)
 
     _oracle = pkcs1_oracle(privkey, block_size)
 
     assert _oracle(ciphertext)
 
-    ok_padding, solution = pkcs1.check_and_remove_padding(
-        search(_oracle, block_size, pubkey, ciphertext),
-        chr(2))
+    recovered = search(
+        _oracle, block_size, pubkey, ciphertext)
 
-
-    assert solution == plaintext, solution
+    assert recovered == padded, repr(recovered)
 
     logging.info('solution matches plaintext')
 
