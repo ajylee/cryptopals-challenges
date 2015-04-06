@@ -2,7 +2,7 @@ from __future__ import division
 import binascii
 import random
 import logging
-from itertools import count
+from itertools import count, chain
 import toolz as tz
 
 from Crypto.Util.number import long_to_bytes, bytes_to_long
@@ -169,18 +169,26 @@ def next_s_M(oracle, pubkey, B, c_0, (s_j, M_j)):
     return (s_jp1, M_jp1)
 
 
-def maybe_unique(intervals):
-    if len(intervals) == 1:
-        a, b = tz.first(intervals)
-        if a == b:
-            return True, a
+def eventual_unique_elt(iterable_of_intervals):
+    """Wait for a sequence of intervals to have a unique element, then return it"""
+    for intervals in iterable_of_intervals:
+        if len(intervals) == 1:
+            a, b = tz.first(intervals)
+            if a == b:
+                return a
 
-    return False, None
 
+def derive_M(oracle, pubkey, B, c_0):
+    """Generate M_1, M_2, ... (NB skips M_0)"""
 
-def first_successful_result(iterable):
-    return tz.first(result for success, result
-                    in iterable if success)
+    s_1, M_1 = derive_s_1_M_1(oracle, pubkey, B, c_0)
+
+    _next_s_M = tz.partial(next_s_M, oracle, pubkey, B, c_0)
+
+    s_M_after_1 = tz.iterate(_next_s_M, (s_1, M_1))
+    M_after_1 = tz.pluck(1, s_M_after_1)
+
+    return chain(M_1, M_after_1)
 
 
 def recover_plaintext(oracle, block_size, pubkey, ciphertext):
@@ -188,13 +196,9 @@ def recover_plaintext(oracle, block_size, pubkey, ciphertext):
     B = derive_B(block_size)
 
     s_0, c_0 = init_s_0_c_0(oracle, pubkey, bytes_to_long(ciphertext))
-    s_1, M_1 = derive_s_1_M_1(oracle, pubkey, B, c_0)
 
-    s_M = tz.iterate(tz.partial(next_s_M, oracle, pubkey, B, c_0), (s_1, M_1))
+    M = derive_M(oracle, pubkey, B, c_0)
 
-    # Narrow down M until M_i has a unique element
-    unique_M_i_elt = first_successful_result(maybe_unique(M_i) for _, M_i in s_M)
-
-    plaintext_int = unique_M_i_elt * nt.invmod(s_0, n) % n
+    plaintext_int = eventual_unique_elt(M) * nt.invmod(s_0, n) % n
 
     return _reinstate_initial_0s(long_to_bytes(plaintext_int), block_size)
