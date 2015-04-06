@@ -79,49 +79,45 @@ def num_free_bits(block_size):
 
 
 def search_s_1(oracle, pubkey, c_0, B):
+    # step_2a
     e, n = pubkey
 
-    s_1 = ceil_div(n, 3*B)
-
-    while True:
+    for s_1 in tz.iterate(inc, ceil_div(n, 3*B)):
         if oracle(long_to_bytes(c_0 * nt.modexp(s_1, e, n) % n)):
             return s_1
-
-        s_1 += 1
 
 
 def search_with_multiple_intervals_left(oracle, pubkey, c_0, prev_s):
     e, n = pubkey
-    s_i = prev_s + 1
 
-    while True:
+    for s_i in tz.iterate(inc, prev_s + 1):
+        if s_i % 10000 == 0:
+            print s_i
         if oracle(long_to_bytes(c_0 * nt.modexp(s_i, e, n) % n)):
             return s_i
-
-        s_i += 1
 
 
 def search_with_one_interval_left(oracle, pubkey, B, c_0, prev_s, (a, b)):
     e, n = pubkey
 
     r_lbound = ceil_div(2 * (b*prev_s - 2*B), n)
-    r_ubound = r_lbound + 10
+    r_ubound = r_lbound + 20
 
-    print 'search with one interval left'
-
-    while True:
-        r_i = random.randint(r_lbound, r_ubound)
-
+    for r_i in tz.iterate(inc, r_lbound):
+        if r_i > r_ubound:
+            break
         s_lbound, s_ubound = (ceil_div(2*B + r_i*n, b),
-                              greatest_int_below_div(3*B + r_i*n, a))
+                              ceil_div(3*B + r_i*n, a))
+        print '-' * 50
 
-        s_i = random.randint(s_lbound, s_ubound)
+        for s_i in long_xrange(s_lbound, s_ubound):
 
-        #print 'r_i', binascii.hexlify(long_to_bytes(r_i))
-        #print 's_i', binascii.hexlify(long_to_bytes(s_i))
+            # s_i = random.randint(s_lbound, s_ubound)
 
-        if oracle(long_to_bytes(c_0 * nt.modexp(s_i, e, n) % n)):
-            return s_i
+            print r_i, s_i
+
+            if oracle(long_to_bytes(c_0 * nt.modexp(s_i, e, n) % n)):
+                return s_i
 
 
 # eqn 3
@@ -151,6 +147,9 @@ def M_i_of_s_i(B, n, s_i, prev_M):
         for r in long_xrange(lbound, ubound + 1):
             ans.add(M_i_abr(B, n, s_i, a, b, r))
 
+
+    assert len(ans) >= 0
+
     return ans
 
 
@@ -158,7 +157,9 @@ def next_s_M(oracle, block_size, pubkey, c_0, (s_j, M_j)):
     e, n = pubkey
     B = num_free_bits(block_size)
 
-    if len(M_j) > 1:
+    assert M_j
+
+    if len(M_j) > 1 or True:
         s_jp1 = search_with_multiple_intervals_left(oracle, pubkey, c_0, s_j)
     else:
         s_jp1 = search_with_one_interval_left(oracle, pubkey,
@@ -196,7 +197,7 @@ def search(oracle, block_size, pubkey, ciphertext):
 
     for s_i, M_i in tz.iterate(_next_s_M, (s_1, M_1)):
         logger.debug('M_i = {}'.format(M_i))
-        
+
         if len(M_i) == 1:
 
             a, b = tz.first(M_i)
