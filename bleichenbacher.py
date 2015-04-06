@@ -19,6 +19,15 @@ def ceil_div(nn, dd):
     return div + int(mod != 0)
 
 
+def long_xrange(initial, upper_bound, step=1):
+    """Like xrange but takes longs"""
+    for ii in count(initial, step):
+        if ii < upper_bound:
+            yield ii
+        else:
+            break
+
+
 def _reinstate_initial_0s(plaintext_without_0s, block_size):
     # NOTE: The (big-endian) decrypted block has its initial zeros removed.
     return ((block_size - len(plaintext_without_0s)) * chr(0)
@@ -110,14 +119,6 @@ def search_s_i_logarithmic(oracle, pubkey, B, c_0, prev_s, (a, b)):
 
 # Step 3; Narrowing set of solutions
 # ===================================
-
-def long_xrange(initial, final):
-    for ii in count(initial):
-        if ii < final:
-            yield ii
-        else:
-            break
-
 
 def M_i_abr(B, n, s_i, a, b, r):
     return (max(a, ceil_div(2*B + r*n, s_i)),
