@@ -1,4 +1,19 @@
 
+def long_xrange(initial_or_upper_bound, maybe_upper_bound=None, step=1):
+    """Like xrange but takes longs"""
+
+    if maybe_upper_bound is None:
+        initial, upper_bound = 0, initial_or_upper_bound
+    else:
+        initial, upper_bound = initial_or_upper_bound, maybe_upper_bound
+
+    for ii in count(initial, step):
+        if ii < upper_bound:
+            yield ii
+        else:
+            break
+
+
 def long_root(nn, rr):
     _float_root = nn ** (1./float(rr))
     _guess = long(round(_float_root))
@@ -17,6 +32,11 @@ def long_root(nn, rr):
                          1)
 
             _guess += change
+
+
+def ceil_div(nn, dd):
+    div, mod = divmod(nn, dd)
+    return div + int(mod != 0)
 
 
 def byte_count(n):

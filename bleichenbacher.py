@@ -9,23 +9,10 @@ from Crypto.Util.number import long_to_bytes, bytes_to_long
 
 import number_theory as nt
 from my_rsa import decrypt
+from number_theory.num_tools import ceil_div, long_xrange
 
 
 logger = logging.getLogger(__name__)
-
-
-def ceil_div(nn, dd):
-    div, mod = divmod(nn, dd)
-    return div + int(mod != 0)
-
-
-def long_xrange(initial, upper_bound, step=1):
-    """Like xrange but takes longs"""
-    for ii in count(initial, step):
-        if ii < upper_bound:
-            yield ii
-        else:
-            break
 
 
 def _reinstate_initial_0s(plaintext_without_0s, block_size):
