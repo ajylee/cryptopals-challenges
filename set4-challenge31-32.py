@@ -7,7 +7,6 @@ import binascii
 import logging
 import math as ma
 import numpy as np
-from statistics import uncertainty_of_mean
 
 
 PORT = 9567
