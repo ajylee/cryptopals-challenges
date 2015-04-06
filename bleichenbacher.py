@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 def ceil_div(nn, dd):
-    return nn // dd + int(nn % dd != 0)
+    div, mod = divmod(nn, dd)
+    return div + int(mod != 0)
 
 
 def inc(x): return x + 1
