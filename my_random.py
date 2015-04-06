@@ -24,6 +24,12 @@ def _lowest_32_bits(n):
     return ((1 << 32) - 1) & n
 
 class MersenneTwister(object):
+    """Based on pseudocode from Wikipedia
+
+    https://en.wikipedia.org/wiki/Mersenne_Twister
+
+    """
+
     def __init__(self, seed):
         self.state = [0] * 624
         self.index = 0
