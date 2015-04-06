@@ -6,7 +6,7 @@ def pad(data_block, block_size):
     """
 
     padding_string_len = block_size - len(data_block) - 3
-    return chr(0) + chr(1) + padding_string_len * chr(0xff) + chr(0) + data_block
+    return chr(0) + chr(2) + padding_string_len * chr(0xff) + chr(0) + data_block
 
 
 def check_and_remove_padding(plaintext_signature, min_padding_string_len=8):
@@ -25,7 +25,7 @@ def check_and_remove_padding(plaintext_signature, min_padding_string_len=8):
 
     for ii, cc in enumerate(plaintext_signature):
         if ((ii == 0 and cc == chr(0))
-            or (ii == 1 and cc == chr(1))
+            or (ii == 1 and cc == chr(2))
             or (2 <= ii and cc != chr(0))):
 
             continue
