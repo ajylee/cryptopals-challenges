@@ -1,5 +1,5 @@
 from __future__ import division
-import math as ma
+import binascii
 import random
 import logging
 import toolz as tz
@@ -13,9 +13,14 @@ from memo import memo
 
 logger = logging.getLogger(__name__)
 
+class DebugMem:
+    count = 1
 
 def ceil_div(nn, dd):
     return nn // dd + int(nn % dd != 0)
+
+
+def inc(x): return x + 1
 
 
 def greatest_int_below_div(nn, dd):
@@ -63,6 +68,8 @@ def derive_s_1_M_1(oracle, block_size, pubkey, c_0):
     M_0 = {(2*B, 3*B - 1)}
     M_1 = M_i_of_s_i(B, n, s_1, M_0)
 
+    assert len(M_1) >= 1
+
     return s_1, M_1
 
 
@@ -94,26 +101,38 @@ def search_with_multiple_intervals_left(oracle, pubkey, c_0, prev_s):
         s_i += 1
 
 
-def search_with_one_interval_left(oracle, pubkey, c_0, (a, b)):
+def search_with_one_interval_left(oracle, pubkey, B, c_0, prev_s, (a, b)):
     e, n = pubkey
 
+    r_lbound = ceil_div(2 * (b*prev_s - 2*B), n)
+    r_ubound = r_lbound + 10
+
+    print 'search with one interval left'
+
     while True:
-        r_i = random.randint(ceil_div(2*b * (prev_s - 2*B), n), 100)
-        s_i = random.randint(ceil_div(2*B + r_i*n, b),
-                             greatest_int_below_div(3*B + r_i*n, a))
+        r_i = random.randint(r_lbound, r_ubound)
+
+        s_lbound, s_ubound = (ceil_div(2*B + r_i*n, b),
+                              greatest_int_below_div(3*B + r_i*n, a))
+
+        s_i = random.randint(s_lbound, s_ubound)
+
+        #print 'r_i', binascii.hexlify(long_to_bytes(r_i))
+        #print 's_i', binascii.hexlify(long_to_bytes(s_i))
 
         if oracle(long_to_bytes(c_0 * nt.modexp(s_i, e, n) % n)):
             return s_i
+
 
 # eqn 3
 # ======
 
 def long_xrange(initial, final):
-    def inc(x): return x + 1
-
     for ii in tz.iterate(inc, initial):
         if ii < final:
             yield ii
+        else:
+            break
 
 
 def M_i_abr(B, n, s_i, a, b, r):
@@ -127,11 +146,9 @@ def M_i_of_s_i(B, n, s_i, prev_M):
     ans = set()
 
     for (a, b) in prev_M:
-        print (a,b)
-        for r in long_xrange(
-                (a * s_i - 3*B + 1) // n,       # TODO: check division
-                (b * s_i - 2*B)     // n + 1):   # TODO: check division
-
+        lbound = ceil_div(a*s_i - 3*B + 1, n)
+        ubound = (b*s_i - 2*B) // n
+        for r in long_xrange(lbound, ubound + 1):
             ans.add(M_i_abr(B, n, s_i, a, b, r))
 
     return ans
@@ -144,17 +161,24 @@ def next_s_M(oracle, block_size, pubkey, c_0, (s_j, M_j)):
     if len(M_j) > 1:
         s_jp1 = search_with_multiple_intervals_left(oracle, pubkey, c_0, s_j)
     else:
-        s_jp1 = search_with_one_interval_left(oracle, pubkey, c_0, M_j)
+        s_jp1 = search_with_one_interval_left(oracle, pubkey,
+                                              B, c_0, s_j, tz.first(M_j))
 
     return (s_jp1, M_i_of_s_i(B, n, s_jp1, M_j))
+
+
+def nomemo(label, thunk):
+    return thunk()
 
 
 def search(oracle, block_size, pubkey, ciphertext):
     e, n = pubkey
     B = num_free_bits(block_size)
 
-    s_0, c_0 = memo(__name__ + '.init_s_0_c_0',
-                    lambda : init_s_0_c_0(oracle, pubkey, bytes_to_long(ciphertext)))
+    #s_0, c_0 = memo(__name__ + '.init_s_0_c_0',
+    #                lambda : init_s_0_c_0(oracle, pubkey, bytes_to_long(ciphertext)))
+
+    s_0, c_0 = 1, bytes_to_long(ciphertext)
 
     logger.debug('s_1, M_1')
     s_1, M_1 = memo(__name__ + '.derive_s_1_M_1',
@@ -162,11 +186,20 @@ def search(oracle, block_size, pubkey, ciphertext):
 
     _next_s_M = tz.partial(next_s_M, oracle, block_size, pubkey, c_0)
 
+    #DebugMem.count = 1
+    #def _next_s_M((s_i, M_i)):
+    #    DebugMem.count += 1
+    #    return memo(
+    #        ('_next_s_M', DebugMem.count),
+    #        lambda : next_s_M(oracle, block_size, pubkey, c_0, (s_i, M_i)))
+
+
     for s_i, M_i in tz.iterate(_next_s_M, (s_1, M_1)):
         logger.debug('M_i = {}'.format(M_i))
-        if len(M_i) == 0:
+        
+        if len(M_i) == 1:
 
-            a, b = M_i[0]
+            a, b = tz.first(M_i)
 
             if a == b:
                 return long_to_bytes(a * nt.invmod(s_0, n) % n)
