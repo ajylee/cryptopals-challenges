@@ -34,17 +34,28 @@ def pkcs1_oracle(privkey, block_size):
     return _oracle
 
 
+def derive_B(block_size):
+    """2 to the number of bits after the 0x00 and 0x02 bytes"""
+    return 2 ** (8 * (block_size - 2))
+
+
+# Step 1; Initialize s_0, M_0, s_1, M_1
+# ======================================
+
 def init_s_0_c_0(oracle, pubkey, c):
     """
-    :param c: ciphertext as bignum
+    :param c: ciphertext as bignum; not necessary if c already conforms
     """
     e, n = pubkey
 
-    while True:
-        s_0 = random.randint(2, 2**16)
-        c_0 = c * nt.modexp(s_0, e, n) % n
-        if oracle(long_to_bytes(c_0)):
-            return s_0, c_0
+    if oracle(long_to_bytes(c)):
+        return 1, c
+    else:
+        while True:
+            s_0 = random.randint(2, 2**16)
+            c_0 = c * nt.modexp(s_0, e, n) % n
+            if oracle(long_to_bytes(c_0)):
+                return s_0, c_0
 
 
 def derive_s_1_M_1(oracle, pubkey, B, c_0):
@@ -58,11 +69,6 @@ def derive_s_1_M_1(oracle, pubkey, B, c_0):
     assert len(M_1) >= 1
 
     return s_1, M_1
-
-
-def derive_B(block_size):
-    """2 to the number of bits after the 0x00 and 0x02 bytes"""
-    return 2 ** (8 * (block_size - 2))
 
 
 # Step 2; Search for pkcs1 conformance
@@ -166,9 +172,7 @@ def search(oracle, block_size, pubkey, ciphertext):
     e, n = pubkey
     B = derive_B(block_size)
 
-    # s_0, c_0 = init_s_0_c_0(oracle, pubkey, bytes_to_long(ciphertext))
-
-    s_0, c_0 = 1, bytes_to_long(ciphertext)
+    s_0, c_0 = init_s_0_c_0(oracle, pubkey, bytes_to_long(ciphertext))
 
     logger.info('derive_s_1_M_1')
     s_1, M_1 = derive_s_1_M_1(oracle, pubkey, B, c_0)
