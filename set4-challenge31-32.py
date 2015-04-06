@@ -218,5 +218,5 @@ if __name__ == '__main__':
 
     test_significantly_long()
     #test_failure()
-    #solve31()
+    solve31()
     solve32()
