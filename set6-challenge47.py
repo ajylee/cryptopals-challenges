@@ -3,13 +3,12 @@ import logging
 import pkcs1
 from my_rsa import keygen, encrypt, BLOCK_SIZE
 from bleichenbacher import pkcs1_oracle, search
-from memo import memo
 
 
 def recover_plaintext_test_tool(block_size):
     plaintext =  "kick it, CC"
 
-    pubkey, privkey = memo(__name__ + '.keygen', lambda : keygen(block_size))
+    pubkey, privkey = keygen(block_size)
 
     ciphertext = encrypt(pubkey, pkcs1.pad(plaintext, chr(2), block_size))
 

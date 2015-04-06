@@ -9,16 +9,8 @@ from Crypto.Util.number import long_to_bytes, bytes_to_long
 import number_theory as nt
 from my_rsa import decrypt
 
-from memo import memo
 
 logger = logging.getLogger(__name__)
-
-class DebugMem:
-    count = 1
-
-
-def nomemo(label, thunk):
-    return thunk()
 
 
 def ceil_div(nn, dd):
@@ -67,7 +59,7 @@ def init_s_0_c_0(oracle, pubkey, c):
 def derive_s_1_M_1(oracle, pubkey, B, c_0):
     e, n = pubkey
 
-    s_1 = memo('search_s_1', lambda : search_s_1(oracle, pubkey, B, c_0))
+    s_1 = search_s_1(oracle, pubkey, B, c_0)
 
     M_0 = {(2*B, 3*B - 1)}
     M_1 = M_i_of_s_i(B, n, s_1, M_0)
@@ -87,7 +79,12 @@ def search_s_1(oracle, pubkey, B, c_0):
     e, n = pubkey
 
     for s_1 in tz.iterate(inc, ceil_div(n, 3*B)):
+        if s_1 % 5000 == 0:
+            logger.info('Searching for s_1 ... {}'
+                        .format(s_1))
+
         if oracle(long_to_bytes(c_0 * nt.modexp(s_1, e, n) % n)):
+            logger.info('Found s_1 = {}'.format(s_1))
             return s_1
 
 
@@ -96,8 +93,10 @@ def search_with_multiple_intervals_left(oracle, pubkey, c_0, prev_s):
 
     for s_i in tz.iterate(inc, prev_s + 1):
         if s_i % 5000 == 0:
-            print s_i
+            logger.info('Searching with multiple intervals for s_i ... {}'
+                        .format(s_i))
         if oracle(long_to_bytes(c_0 * nt.modexp(s_i, e, n) % n)):
+            logger.info('Found s_i = {}'.format(s_i))
             return s_i
 
 
@@ -165,13 +164,12 @@ def search(oracle, block_size, pubkey, ciphertext):
     e, n = pubkey
     B = derive_B(block_size)
 
-    #s_0, c_0 = memo(__name__ + '.init_s_0_c_0',
-    #                lambda : init_s_0_c_0(oracle, pubkey, bytes_to_long(ciphertext)))
+    # s_0, c_0 = init_s_0_c_0(oracle, pubkey, bytes_to_long(ciphertext))
 
     s_0, c_0 = 1, bytes_to_long(ciphertext)
 
-    s_1, M_1 = memo(__name__ + '.derive_s_1_M_1',
-                    lambda : derive_s_1_M_1(oracle, pubkey, B, c_0))
+    logger.info('derive_s_1_M_1')
+    s_1, M_1 = derive_s_1_M_1(oracle, pubkey, B, c_0)
 
     _next_s_M = tz.partial(next_s_M, oracle, pubkey, B, c_0)
 
