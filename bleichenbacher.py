@@ -169,17 +169,18 @@ def next_s_M(oracle, pubkey, B, c_0, (s_j, M_j)):
     return (s_jp1, M_jp1)
 
 
-def maybe_plaintext(n, block_size, s_0, M_i):
-    if len(M_i) == 1:
-
-        a, b = tz.first(M_i)
-
+def maybe_unique(intervals):
+    if len(intervals) == 1:
+        a, b = tz.first(intervals)
         if a == b:
-            plaintext_int = a * nt.invmod(s_0, n) % n
-            return True, _reinstate_initial_0s(long_to_bytes(plaintext_int),
-                                               block_size)
+            return True, a
 
     return False, None
+
+
+def first_successful_result(iterable):
+    return tz.first(result for success, result
+                    in iterable if success)
 
 
 def search(oracle, block_size, pubkey, ciphertext):
@@ -189,9 +190,11 @@ def search(oracle, block_size, pubkey, ciphertext):
     s_0, c_0 = init_s_0_c_0(oracle, pubkey, bytes_to_long(ciphertext))
     s_1, M_1 = derive_s_1_M_1(oracle, pubkey, B, c_0)
 
-    _next_s_M = tz.partial(next_s_M, oracle, pubkey, B, c_0)
+    s_M = tz.iterate(tz.partial(next_s_M, oracle, pubkey, B, c_0), (s_1, M_1))
 
-    for s_i, M_i in tz.iterate(_next_s_M, (s_1, M_1)):
-        success, plaintext = maybe_plaintext(n, block_size, s_0, M_i)
-        if success:
-            return plaintext
+    # Narrow down M until M_i has a unique element
+    unique_M_i_elt = first_successful_result(maybe_unique(M_i) for _, M_i in s_M)
+
+    plaintext_int = unique_M_i_elt * nt.invmod(s_0, n) % n
+
+    return _reinstate_initial_0s(long_to_bytes(plaintext_int), block_size)
