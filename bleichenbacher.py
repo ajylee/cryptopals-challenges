@@ -98,8 +98,8 @@ def search_with_one_interval_left(oracle, pubkey, B, c_0, prev_s, (a, b)):
                 return s_i
 
 
-# eqn 3
-# ======
+# Step 3; Narrowing set of solutions
+# ===================================
 
 def long_xrange(initial, final):
     for ii in count(initial):
@@ -114,6 +114,17 @@ def M_i_abr(B, n, s_i, a, b, r):
             min(b, (3*B - 1 + r*n) // s_i))
 
 
+def log_and_check_M(M_im1, M_i):
+    len_M_i = len(M_i)
+
+    assert len_M_i > 0
+
+    if len_M_i > 1:
+        logger.info("{} intervals left".format(len_M_i))
+    elif len_M_i == 1 and len(M_im1) > 1:
+        logger.info("Reached single interval")
+
+
 def M_i_of_s_i(B, n, s_i, prev_M):
     """Step 3: Narrowing the set of solutions"""
 
@@ -126,12 +137,13 @@ def M_i_of_s_i(B, n, s_i, prev_M):
            for (a, b) in prev_M
            for r in r_range(a, b)}
 
-    assert len(M_i) > 0
-
-    if len(M_i) == 1 and len(prev_M) > 1:
-        logger.info("Reached single interval")
+    log_and_check_M(prev_M, M_i)
 
     return M_i
+
+
+# Put it together
+# ================
 
 
 def next_s_M(oracle, pubkey, B, c_0, (s_j, M_j)):
