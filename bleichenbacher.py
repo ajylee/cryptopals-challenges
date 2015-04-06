@@ -30,11 +30,14 @@ def greatest_int_below(num):
         return floor(num)
 
 
-def init_s_0_c_0(oracle, pubkey, ciphertext):
+def init_s_0_c_0(oracle, pubkey, c):
+    """
+    :param c: ciphertext as bignum
+    """
     e, n = pubkey
     while True:
         s_0 = random.randint(2, 2**16)
-        c_0 = nt.modexp(s_0, e, n)
+        c_0 = c * nt.modexp(s_0, e, n) % n
         logger.debug('{}'.format(s_0))
         if oracle(long_to_bytes(c_0)):
             return s_0, c_0
