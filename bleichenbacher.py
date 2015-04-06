@@ -124,17 +124,18 @@ def M_i_abr(B, n, s_i, a, b, r):
 def M_i_of_s_i(B, n, s_i, prev_M):
     """Step 3: Narrowing the set of solutions"""
 
-    ans = set()
-
-    for (a, b) in prev_M:
+    def r_range(a, b):
         lbound = ceil_div(a*s_i - 3*B + 1, n)
         ubound = (b*s_i - 2*B) // n
-        for r in long_xrange(lbound, ubound + 1):
-            ans.add(M_i_abr(B, n, s_i, a, b, r))
+        return long_xrange(lbound, ubound + 1)
 
-    assert len(ans) > 0
+    M_i = {M_i_abr(B, n, s_i, a, b, r)
+           for (a, b) in prev_M
+           for r in r_range(a, b)}
 
-    return ans
+    assert len(M_i) > 0
+
+    return M_i
 
 
 def next_s_M(oracle, pubkey, B, c_0, (s_j, M_j)):
