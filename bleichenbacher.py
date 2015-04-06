@@ -117,8 +117,6 @@ def M_i_abr(B, n, s_i, a, b, r):
 def M_i_of_s_i(B, n, s_i, prev_M):
     """Step 3: Narrowing the set of solutions"""
 
-    logger.info("Calculating M_i")
-
     def r_range(a, b):
         lbound = ceil_div(a*s_i - 3*B + 1, n)
         ubound = (b*s_i - 2*B) // n
@@ -129,6 +127,9 @@ def M_i_of_s_i(B, n, s_i, prev_M):
            for r in r_range(a, b)}
 
     assert len(M_i) > 0
+
+    if len(M_i) == 1 and len(prev_M) > 1:
+        logger.info("Reached single interval")
 
     return M_i
 
