@@ -61,7 +61,7 @@ def get_next_byte(encrypt_fn, keysize, known):
 
     entry_len = len(known) + lpad_len + 1
 
-    _inputs = (lpad + known + _c for _c in gen.chars)
+    _inputs = (lpad + known + chr(ii) for ii in xrange(256))
     _reverse_lookup = {encrypt_fn(_input)[:entry_len]: _input
                        for _input in _inputs}
 
