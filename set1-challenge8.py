@@ -19,7 +19,7 @@ def score(ss, max_chunks=10):
 
 
 def solve():
-    with open('8.txt') as fil:
+    with open('challenge-data/8.txt') as fil:
         ciphertexts = map(binascii.unhexlify, fil.read().split())
 
     scores = map(score, ciphertexts)

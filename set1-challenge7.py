@@ -23,7 +23,7 @@ def solve():
     key = b"YELLOW SUBMARINE"
     cipher = AES.new(key, AES.MODE_ECB)
 
-    with open('7.txt') as fil:
+    with open('challenge-data/7.txt') as fil:
         ss = base64.b64decode(fil.read())
 
         decrypted = cipher.decrypt(ss)

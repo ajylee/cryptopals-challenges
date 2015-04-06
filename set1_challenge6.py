@@ -99,7 +99,7 @@ def solve_code(ss, keysize):
 
 
 def test_breakup():
-    with open('6.txt', 'r') as fil:
+    with open('challenge-data/6.txt', 'r') as fil:
         ss = base64.b64decode(fil.read())
 
     divisor = 8
@@ -122,7 +122,7 @@ if __name__ == '__main__':
     test_breakup()
     test_solve_code()
 
-    with open('6.txt', 'r') as fil:
+    with open('challenge-data/6.txt', 'r') as fil:
         ss = base64.b64decode(fil.read())
 
     keysize = solve_keysize(ss, num_chunks=6, max_keysize=40)
