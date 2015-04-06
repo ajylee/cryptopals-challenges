@@ -68,21 +68,14 @@ def derive_B(block_size):
 def search_s_1(oracle, pubkey, B, c_0):
     # step_2a
     e, n = pubkey
-
-    for s_1 in count(ceil_div(n, 3*B)):
-        if s_1 % 5000 == 0:
-            logger.info('Searching for s_1 ... {}'
-                        .format(s_1))
-
-        if oracle(long_to_bytes(c_0 * nt.modexp(s_1, e, n) % n)):
-            logger.info('Found s_1 = {}'.format(s_1))
-            return s_1
+    return search_with_multiple_intervals_left(oracle, pubkey, c_0,
+                                               start = ceil_div(n, 3*B))
 
 
-def search_with_multiple_intervals_left(oracle, pubkey, c_0, prev_s):
+def search_with_multiple_intervals_left(oracle, pubkey, c_0, start):
     e, n = pubkey
 
-    for s_i in count(prev_s + 1):
+    for s_i in count(start):
         if s_i % 5000 == 0:
             logger.info('Searching with multiple intervals for s_i ... {}'
                         .format(s_i))
@@ -124,6 +117,8 @@ def M_i_abr(B, n, s_i, a, b, r):
 def M_i_of_s_i(B, n, s_i, prev_M):
     """Step 3: Narrowing the set of solutions"""
 
+    logger.info("Calculating M_i")
+
     def r_range(a, b):
         lbound = ceil_div(a*s_i - 3*B + 1, n)
         ubound = (b*s_i - 2*B) // n
@@ -142,7 +137,7 @@ def next_s_M(oracle, pubkey, B, c_0, (s_j, M_j)):
     e, n = pubkey
 
     if len(M_j) > 1:
-        s_jp1 = search_with_multiple_intervals_left(oracle, pubkey, c_0, s_j)
+        s_jp1 = search_with_multiple_intervals_left(oracle, pubkey, c_0, s_j + 1)
     else:
         s_jp1 = search_with_one_interval_left(oracle, pubkey,
                                               B, c_0, s_j, tz.first(M_j))
