@@ -67,6 +67,11 @@ class MTCipher(object):
 
         return ciphertext
 
+    def encrypt_with_random_pad(self, plaintext):
+        random_pad = Crypto.Random.new().read(random.randint(0, 300))
+        padded = random_pad + plaintext
+        return mtc.encrypt(padded)
+
     def decrypt(self, text):
         return self.encrypt(text)
 
@@ -79,7 +84,26 @@ def test_MTCipher():
     assert mtc.decrypt(mtc.encrypt(text)) == text
 
 
-def solve_mt_key(idx, int32_keystream):
+def generate_keystream_part(encrypt_fn):
+    known_text = 'hello, this is the message.'
+    raw_ciphertext = encrypt_fn(known_text)
+
+    ciphertext = raw_ciphertext[-len(known_text):]
+    prepad_len = len(raw_ciphertext) - len(known_text)
+
+    byte_keystream_part = strxor(snip_to_align(prepad_len, ciphertext),
+                                 snip_to_align(prepad_len, known_text))
+
+    idx = ceil_div(prepad_len, 4)
+
+    int32_keystream = map(untemper, _strn_to_int32(byte_keystream_part))
+
+    return idx, int32_keystream
+
+
+def solve_mt_key(encrypt_fn):
+    idx, int32_keystream = generate_keystream_part(encrypt_fn)
+
     for key, state in enumerate(memo.MT_STATES):
         if state[idx:idx + len(int32_keystream)] == int32_keystream:
             return key
@@ -107,23 +131,13 @@ def test_strn_to_int32():
 
 def test_solve_mt_key():
     mtc = MTCipher(random.randint(0, 2**16 - 1))
-
-    random_pad = Crypto.Random.new().read(random.randint(0, 300))
-    known_text = 'hello, this is the message.'
-    plaintext = random_pad + known_text
-
-    raw_ciphertext = mtc.encrypt(plaintext)
-
-    ciphertext = raw_ciphertext[-len(known_text):]
-    prepad_len = len(raw_ciphertext) - len(known_text)
-    
-    keystream_part = strxor(snip_to_align(prepad_len, ciphertext),
-                            snip_to_align(prepad_len, known_text))
-
-    idx = ceil_div(prepad_len, 4)
-    key = solve_mt_key(idx, map(untemper, _strn_to_int32(keystream_part)))
-
+    key = solve_mt_key(mtc.encrypt_with_random_pad)
     assert key == mtc.seed
+
+
+def test_solve_current_timestamp_mt():
+    seed = current_timestamp()
+    cipher = MTCipher(seed)
 
 
 if __name__ == '__main__':
