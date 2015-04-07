@@ -5,23 +5,18 @@ import random
 import Crypto.Random
 import toolz as tz
 from my_random import MersenneTwister
-import memo
 from block_crypto import strxor
+from memo import caches
 
 from number_theory.num_tools import ceil_div
 from set3_challenge23 import untemper
 
 
-def _get_mt_state(seed):
+@tz.memoize(cache=caches[__name__, 'mt_states'])
+def get_mt_state(seed):
     mt = MersenneTwister(seed)
     mt.generate_numbers()
     return mt.state
-
-
-if not memo.__dict__.get('MT_STATES'):
-    print 'generating states'
-    memo.MT_STATES = [_get_mt_state(ii) for ii in xrange(2**16)]
-    print 'done generating states'
 
 
 def current_timestamp():
@@ -104,7 +99,9 @@ def generate_keystream_part(encrypt_fn):
 def solve_mt_key(encrypt_fn):
     idx, int32_keystream = generate_keystream_part(encrypt_fn)
 
-    for key, state in enumerate(memo.MT_STATES):
+    mt_states = (get_mt_state(ii) for ii in xrange(2**16))
+
+    for key, state in enumerate(mt_states):
         if state[idx:idx + len(int32_keystream)] == int32_keystream:
             return key
 
@@ -119,7 +116,7 @@ def detect_and_solve_current_timestamp_mt(encrypt_fn, max_sec_back=3600):
 
     for time_back in xrange(max_sec_back):
         key = timestamp - time_back
-        state = _get_mt_state(key)
+        state = get_mt_state(key)
         if state[idx:idx + len(int32_keystream)] == int32_keystream:
             return (True, key)
     else:

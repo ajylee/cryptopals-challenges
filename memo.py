@@ -1,6 +1,7 @@
-
+from collections import defaultdict
 
 memory = {}
+caches = defaultdict(dict)
 
 
 def memo(name, thunk):
