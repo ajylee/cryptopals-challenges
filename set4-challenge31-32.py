@@ -1,12 +1,14 @@
-# must start hmac-server.rb first
+# NB: Must start hmac-server.rb first
 
 from __future__ import division
+import os
 import time
 import urllib2
 import binascii
 import logging
 import math as ma
-import numpy as np
+import random
+import toolz as tz
 from infer_difference import InferenceSystem
 
 PORT = 9567
@@ -26,6 +28,14 @@ class Success(Exception):
 class Fail(Exception):
     def __init__(self, value):
         self.value = value
+
+
+def random_fname():
+    dirname = './challenge-data'
+    fname = os.path.join(dirname,
+                       random.choice(os.listdir(dirname)))
+
+    return fname
 
 
 def set_sleep_time(port, sleep_time):
@@ -102,6 +112,8 @@ def solve_hash_chall31(port, filename):
             curr_hash[ii] = solve_byte(oracle, significantly_long_chall31)
         except Success as s:
             return s.value
+        except NoDifferenceException:
+            raise Fail(curr_hash)
 
         logging.info(repr(binascii.hexlify(curr_hash)))
     else:
@@ -132,45 +144,44 @@ def solve_hash_chall32(port, filename):
         raise Fail(curr_hash)
 
 
-class TestData:
-    actual_signature = (
-        '9198ac704afb4c460fb532da453b7a63362d2b5a'
-    )
-
-    fname = 'challenge-data/20.txt'
-
-
 def test_significantly_long():
     set_sleep_time(PORT, 0.050)
+    fname = random_fname()
 
-    s0 = '0000000000000000000000000000000000000000'
-    s1 = '9100000000000000000000000000000000000000'
+    def diff(b0, b1):
+        s0, s1 = bytearray(HMAC_SIZE), bytearray(HMAC_SIZE)
+        s0[0], s1[0] = b0, b1
+        _, t0 = url_get(PORT, fname, s0)
+        _, t1 = url_get(PORT, fname, s1)
+        return t1 - t0
 
-    _, t0 = url_get(PORT, TestData.fname, s0)
-    _, t1 = url_get(PORT, TestData.fname, s1)
-
-    assert significantly_long_chall31(t1-t0)
+    assert any(
+        significantly_long_chall31(diff(b0, b1))
+        for b0, b1 in tz.sliding_window(2, xrange(256)))
 
 
 def solve31():
+    fname = random_fname()
     set_sleep_time(PORT, 0.050)
-    solved_hmac = solve_hash_chall31(PORT, TestData.fname)
-    assert url_get(PORT, TestData.fname, binascii.hexlify(solved_hmac))[0]
+    solved_hmac = solve_hash_chall31(PORT, fname)
+    assert url_get(PORT, fname, binascii.hexlify(solved_hmac))[0]
 
 
 def test_failure():
-    import nose.tools
+    fname = random_fname()
     set_sleep_time(PORT, 0.005)
-    solved_hmac = nose.tools.assert_raises(ValueError,
-                                           solve_hash_chall31,
-                                           PORT, TestData.fname)
+    try:
+        solve_hash_chall31(PORT, fname)
+        raise AssertionError, 'chall 31 solution should fail for sleep time 0.005'
+    except Fail:
+        logging.info('Test failure of chall 31 solution successful')
 
 
 def solve32():
+    fname = random_fname()
     set_sleep_time(PORT, 0.005)
-    #start = binascii.unhexlify('9198ac704afb4c460fb532da453b7a63362d')
-    solved_hmac = solve_hash_chall32(PORT, TestData.fname)
-    assert url_get(PORT, TestData.fname, binascii.hexlify(solved_hmac))[0]
+    solved_hmac = solve_hash_chall32(PORT, fname)
+    assert url_get(PORT, fname, binascii.hexlify(solved_hmac))[0]
 
 
 if __name__ == '__main__':
@@ -178,10 +189,10 @@ if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
 
     test_significantly_long()
+    test_failure()
 
     import infer_difference
     logging.getLogger(infer_difference.__name__).setLevel(logging.INFO)
 
-    #test_failure()
     solve31()
     solve32()
