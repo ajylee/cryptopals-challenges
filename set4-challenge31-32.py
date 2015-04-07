@@ -14,6 +14,10 @@ PORT = 9567
 HMAC_SIZE = 20
 
 
+class NoDifferenceException(Exception):
+    pass
+
+
 def set_sleep_time(port, sleep_time):
     template = ('http://localhost:{port}/set_sleep_time?'
                 'sleep_time={sleep_time}')
@@ -68,7 +72,7 @@ def solve_byte(oracle, significantly_long):
             prev_byte = bb
             continue
     else:
-        raise ValueError, 'no differences in guesses found'
+        raise NoDifferenceException, 'no differences in guesses found'
 
 
 def solve_hash_chall31(port, filename):
@@ -141,14 +145,15 @@ def solve_hash_chall32(port, filename, starting_bytes=''):
     def base_oracle(h): return url_get(port, filename, binascii.hexlify(h))
 
     significant_interval = 0.0035
-    num_trials = lambda ii: max(3, int(round(1.5 * ii)))
+    num_trials = lambda ii: max(3, 2*ii)
 
     if starting_bytes:
         curr_hash = bytearray(starting_bytes + '\x00' * (-len(starting_bytes) % HMAC_SIZE))
     else:
         curr_hash = bytearray([0] * HMAC_SIZE) 
 
-    for ii in xrange(len(starting_bytes), len(curr_hash)):
+    ii = len(starting_bytes)
+    while ii < len(curr_hash):
         _new_guess = bytearray(curr_hash)
         logging.info('num trials {}'.format(num_trials(ii)))
 
@@ -160,8 +165,14 @@ def solve_hash_chall32(port, filename, starting_bytes=''):
                 total_time += _t
             return success, total_time / num_trials(ii) 
 
-        curr_hash[ii] = solve_byte(oracle, lambda t: abs(t) > significant_interval)
-        logging.info(repr(binascii.hexlify(curr_hash[:ii+1])))
+        try:
+            curr_hash[ii] = solve_byte(oracle, lambda t: abs(t) > significant_interval)
+            ii += 1
+        except NoDifferenceException:
+            # This probably means the previous byte was wrong, so redo it
+            ii -= 1
+
+        logging.info(repr(binascii.hexlify(curr_hash[:ii])))
 
     return curr_hash
 
