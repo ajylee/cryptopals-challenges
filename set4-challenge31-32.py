@@ -145,7 +145,7 @@ def solve_hash_chall32(port, filename, starting_bytes=''):
     def base_oracle(h): return url_get(port, filename, binascii.hexlify(h))
 
     significant_interval = 0.0035
-    num_trials = lambda ii: max(3, 2*ii)
+    num_trials = lambda ii: max(3, 3*ii)
 
     if starting_bytes:
         curr_hash = bytearray(starting_bytes + '\x00' * (-len(starting_bytes) % HMAC_SIZE))
