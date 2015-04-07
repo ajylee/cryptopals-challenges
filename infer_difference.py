@@ -84,9 +84,11 @@ class InferenceSystem(object):
     def choose_standard(self):
         # Choose a standard that doesn't have a high sum
         top, top_sum = self.sums.most_common(1)[0]
+        top_mean = top_sum / self.num_tries[top]
 
         for choice in self.choices:
-            if choice != top and self.sums[choice] < top_sum:
+            if (choice != top
+                and self.sums[choice] / self.num_tries[choice] < top_mean):
                 return choice
         else:
             return 0
