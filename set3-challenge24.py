@@ -8,6 +8,7 @@ from my_random import MersenneTwister
 import memo
 from block_crypto import strxor
 
+from number_theory.num_tools import ceil_div
 from set3_challenge23 import untemper
 
 
@@ -93,10 +94,11 @@ def snip_to_align(idx, text):
     """
 
     front_cut = (-idx % 4)
-    back_cut  = len(text) % 4
+    chopped_0 = text[front_cut:]
 
-    return text[front_cut: len(text)-back_cut]
-    
+    chopped_1 = chopped_0[:len(chopped_0) - len(chopped_0) % 4]
+
+    return chopped_1
 
 
 def test_strn_to_int32():
@@ -118,7 +120,7 @@ def test_solve_mt_key():
     keystream_part = strxor(snip_to_align(prepad_len, ciphertext),
                             snip_to_align(prepad_len, known_text))
 
-    idx = int(ceil(prepad_len / 4))
+    idx = ceil_div(prepad_len, 4)
     key = solve_mt_key(idx, map(untemper, _strn_to_int32(keystream_part)))
 
     assert key == mtc.seed
