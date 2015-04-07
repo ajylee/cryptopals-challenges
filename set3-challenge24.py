@@ -13,7 +13,7 @@ from set3_challenge23 import untemper
 
 
 def _get_mt_state(seed):
-    mt = MersenneTwister(ii)
+    mt = MersenneTwister(seed)
     mt.generate_numbers()
     return mt.state
 
@@ -70,7 +70,7 @@ class MTCipher(object):
     def encrypt_with_random_pad(self, plaintext):
         random_pad = Crypto.Random.new().read(random.randint(0, 300))
         padded = random_pad + plaintext
-        return mtc.encrypt(padded)
+        return self.encrypt(padded)
 
     def decrypt(self, text):
         return self.encrypt(text)
