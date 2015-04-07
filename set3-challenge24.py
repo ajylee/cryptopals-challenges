@@ -109,6 +109,23 @@ def solve_mt_key(encrypt_fn):
             return key
 
 
+def detect_and_solve_current_timestamp_mt(encrypt_fn, max_sec_back=3600):
+    """Looks back `max_sec_back` in time for a matching MT seed. Returns (True,
+    key) on success; else (False, None) if no such seed is found.
+
+    """
+    idx, int32_keystream = generate_keystream_part(encrypt_fn)
+    timestamp = current_timestamp()
+
+    for time_back in xrange(max_sec_back):
+        key = timestamp - time_back
+        state = _get_mt_state(key)
+        if state[idx:idx + len(int32_keystream)] == int32_keystream:
+            return (True, key)
+    else:
+        return (False, None)
+
+
 def snip_to_align(idx, text):
     """Largest substring S s.t. S aligned with 32-bit blocks
 
@@ -138,9 +155,19 @@ def test_solve_mt_key():
 def test_solve_current_timestamp_mt():
     seed = current_timestamp()
     cipher = MTCipher(seed)
+    valid, key = detect_and_solve_current_timestamp_mt(
+        cipher.encrypt_with_random_pad)
+
+    assert valid and key == seed
+
+    non_timestamp_cipher = MTCipher(1000)
+
+    assert not detect_and_solve_current_timestamp_mt(
+        non_timestamp_cipher.encrypt_with_random_pad)[0]
 
 
 if __name__ == '__main__':
     test_strn_to_int32()
     test_MTCipher()
     test_solve_mt_key()
+    test_solve_current_timestamp_mt()
