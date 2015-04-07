@@ -7,15 +7,25 @@ import binascii
 import logging
 import math as ma
 import numpy as np
-
+from infer_difference import InferenceSystem
 
 PORT = 9567
 
 HMAC_SIZE = 20
 
+chars = bytearray(xrange(256))
+
 
 class NoDifferenceException(Exception):
     pass
+
+class Success(Exception):
+    def __init__(self, value):
+        self.value = value
+
+class Fail(Exception):
+    def __init__(self, value):
+        self.value = value
 
 
 def set_sleep_time(port, sleep_time):
@@ -53,20 +63,19 @@ def url_get(port, filename, signature):
     return success, time.time() - start
 
 
+
 def solve_byte(oracle, significantly_long):
     t0 = None
     prev_byte = None
 
     for bb in xrange(0x0100):
-        success, t1 = oracle(bb)
+        t1 = oracle(bb)
 
         if t0 is not None and significantly_long(t1 - t0):
             if t1 > t0:
                 return bb
             else:
                 return prev_byte
-        elif success:
-            return bb
         else:
             t0 = t1
             prev_byte = bb
@@ -83,98 +92,44 @@ def solve_hash_chall31(port, filename):
 
         def oracle(bb):
             _new_guess[ii] = bb
-            return url_get(port, filename, binascii.hexlify(_new_guess))
-
-        curr_hash[ii] = solve_byte(oracle, significantly_long_chall31)
-        logging.info(repr(binascii.hexlify(curr_hash)))
-
-    return curr_hash
-
-
-def stats(timer):
-    """Gives the significant time interval and the number
-    of trials necessary to achieve it.
-
-    :param timer: timer(hmac_hash) -> time
-
-    """
-
-    post_pad = '\x00' * (HMAC_SIZE - 1)
-    zero_times = []     # collection of times for byte 0x00
-    running_total = [0] * 0x100
-    count = 0
-
-    while True:
-        largest_diff = 0
-
-        for bb in xrange(0x100):
-            _t = timer(chr(bb) + post_pad)
-
-            if bb == 0:
-                zero_times.append(_t)
-
-            running_total[bb] += _t
-
-            largest_diff = max(largest_diff,
-                               running_total[bb] - running_total[0])
-
-        count += 1
-
-        logging.info('count {}'.format(count))
-
-        if count > 3:
-            unc = np.std(zero_times, ddof=1)
-            unc_of_unc = unc / (2. * ma.sqrt(count - 1))
-
-            lhs = 5 * (unc + unc_of_unc) * ma.sqrt(HMAC_SIZE * count)
-            if lhs < largest_diff:
-                significant_interval = (largest_diff / count) - (unc + unc_of_unc)
-
-                base_necessary_trials = 4 * (unc + unc_of_unc) / significant_interval
-
-                logging.info('base_necessary_trials: {}, sig interval: {}'
-                             .format(base_necessary_trials, significant_interval))
-
-                return base_necessary_trials, significant_interval
+            success, time = url_get(port, filename, binascii.hexlify(_new_guess))
+            if success:
+                raise Success(_new_guess)
             else:
-                logging.info('lhs: {}'.format(lhs))
-                logging.info('rhs: {}'.format(largest_diff))
+                return time
 
+        try:
+            curr_hash[ii] = solve_byte(oracle, significantly_long_chall31)
+        except Success as s:
+            return s.value
 
-def solve_hash_chall32(port, filename, starting_bytes=''):
-    def base_oracle(h): return url_get(port, filename, binascii.hexlify(h))
-
-    significant_interval = 0.0035
-    num_trials = lambda ii: max(3, 3*ii)
-
-    if starting_bytes:
-        curr_hash = bytearray(starting_bytes + '\x00' * (-len(starting_bytes) % HMAC_SIZE))
+        logging.info(repr(binascii.hexlify(curr_hash)))
     else:
-        curr_hash = bytearray([0] * HMAC_SIZE) 
+        raise Fail
 
-    ii = len(starting_bytes)
-    while ii < len(curr_hash):
+
+def solve_hash_chall32(port, filename):
+    curr_hash = bytearray(HMAC_SIZE)
+
+    for ii in xrange(len(curr_hash)):
         _new_guess = bytearray(curr_hash)
-        logging.info('num trials {}'.format(num_trials(ii)))
 
         def oracle(bb):
             _new_guess[ii] = bb
-            total_time = 0
-            for _ in xrange(num_trials(ii)):
-                success, _t = base_oracle(_new_guess)
-                total_time += _t
-            return success, total_time / num_trials(ii) 
+            success, time = url_get(port, filename, binascii.hexlify(_new_guess))
+            if success:
+                raise Success(_new_guess)
+            else:
+                return time
 
         try:
-            curr_hash[ii] = solve_byte(oracle, lambda t: abs(t) > significant_interval)
-            ii += 1
-        except NoDifferenceException:
-            # This probably means the previous byte was wrong, so redo it
-            ii -= 1
+            curr_hash[ii] = InferenceSystem(oracle, chars).infer_best_choice()
+        except Success as s:
+            return s.value
 
-        logging.info(repr(binascii.hexlify(curr_hash[:ii])))
-
-    return curr_hash
+        logging.info(repr(binascii.hexlify(curr_hash[:ii+1])))
+    else:
+        raise Fail(curr_hash)
 
 
 class TestData:
@@ -182,17 +137,17 @@ class TestData:
         '9198ac704afb4c460fb532da453b7a63362d2b5a'
     )
 
-    s0 = '0000000000000000000000000000000000000000'
-    s1 = '9100000000000000000000000000000000000000'
-
     fname = 'challenge-data/20.txt'
 
 
 def test_significantly_long():
     set_sleep_time(PORT, 0.050)
 
-    _, t0 = url_get(PORT, TestData.fname, TestData.s0)
-    _, t1 = url_get(PORT, TestData.fname, TestData.s1)
+    s0 = '0000000000000000000000000000000000000000'
+    s1 = '9100000000000000000000000000000000000000'
+
+    _, t0 = url_get(PORT, TestData.fname, s0)
+    _, t1 = url_get(PORT, TestData.fname, s1)
 
     assert significantly_long_chall31(t1-t0)
 
@@ -223,6 +178,10 @@ if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
 
     test_significantly_long()
+
+    import infer_difference
+    logging.getLogger(infer_difference.__name__).setLevel(logging.INFO)
+
     #test_failure()
     solve31()
     solve32()
